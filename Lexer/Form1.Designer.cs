@@ -287,6 +287,7 @@
             this.пускToolStripMenuItem.Name = "пускToolStripMenuItem";
             this.пускToolStripMenuItem.Size = new System.Drawing.Size(66, 25);
             this.пускToolStripMenuItem.Text = "Пуск";
+            this.пускToolStripMenuItem.Click += new System.EventHandler(this.пускToolStripMenuItem_Click);
             // 
             // справкаToolStripMenuItem
             // 
@@ -302,12 +303,14 @@
             this.вызовСправкиToolStripMenuItem.Name = "вызовСправкиToolStripMenuItem";
             this.вызовСправкиToolStripMenuItem.Size = new System.Drawing.Size(227, 26);
             this.вызовСправкиToolStripMenuItem.Text = "Вызов справки";
+            this.вызовСправкиToolStripMenuItem.Click += new System.EventHandler(this.вызовСправкиToolStripMenuItem_Click);
             // 
             // оПрограммеToolStripMenuItem
             // 
             this.оПрограммеToolStripMenuItem.Name = "оПрограммеToolStripMenuItem";
             this.оПрограммеToolStripMenuItem.Size = new System.Drawing.Size(227, 26);
             this.оПрограммеToolStripMenuItem.Text = "О программе";
+            this.оПрограммеToolStripMenuItem.Click += new System.EventHandler(this.оПрограммеToolStripMenuItem_Click);
             // 
             // toolStrip1
             // 

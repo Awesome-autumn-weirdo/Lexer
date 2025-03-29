@@ -621,6 +621,8 @@ namespace Lexer
             AnalyzeRecordType();
         }
 
+
+
         //private void пускToolStripMenuItem_Click(object sender, EventArgs e)
         //{
         //    if (tabControl1.SelectedTab == null) return;
