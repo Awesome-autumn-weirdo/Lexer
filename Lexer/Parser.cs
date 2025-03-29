@@ -206,7 +206,7 @@ namespace Lexer
             if (!CheckToken(ref currentToken, TokenType.KeywordType, "Ожидается ключевое слово 'type'"))
                 return false;
 
-            if (!CheckToken(ref currentToken, TokenType.Identifier, "Ожидается имя типа"))
+            if (!CheckToken(ref currentToken, TokenType.Identifier, "Ожидается идентификатор"))
                 return false;
 
             if (!CheckToken(ref currentToken, TokenType.Equals, "Ожидается символ '='"))
@@ -245,12 +245,12 @@ namespace Lexer
         private bool ParseFieldDeclaration(ref int currentToken)
         {
             // Обрабатываем список идентификаторов
-            if (!CheckToken(ref currentToken, TokenType.Identifier, "Ожидается имя поля"))
+            if (!CheckToken(ref currentToken, TokenType.Identifier, "Ожидается идентификатор"))
                 return false;
 
             while (CheckToken(ref currentToken, TokenType.Comma, ""))
             {
-                if (!CheckToken(ref currentToken, TokenType.Identifier, "Ожидается имя поля после запятой"))
+                if (!CheckToken(ref currentToken, TokenType.Identifier, "Ожидается идентификатор после запятой"))
                     return false;
             }
 
@@ -258,7 +258,7 @@ namespace Lexer
             if (!CheckToken(ref currentToken, TokenType.Colon, "Ожидается символ ':' после списка полей"))
                 return false;
 
-            if (!CheckToken(ref currentToken, TokenType.TypeKeyword, "Ожидается тип поля (real, integer и т.д.)"))
+            if (!CheckToken(ref currentToken, TokenType.TypeKeyword, "Ожидается тип поля"))
                 return false;
 
             // Точка с запятой не обязательна после последнего поля
