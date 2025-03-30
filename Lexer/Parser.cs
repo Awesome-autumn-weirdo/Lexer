@@ -258,27 +258,34 @@ namespace Lexer
             string typeName = "";
             Character c = chain.Next();
 
-            while (char.IsLetter(c.Char)) // Читаем название типа целиком
+            while (char.IsLetter(c.Char)) // Читаем название типа
             {
                 typeName += c.Char;
-                chain.GetNext(); // Переходим к следующему символу
+                chain.GetNext();
                 c = chain.Next();
             }
 
-            if (!validTypes.Contains(typeName.ToLower())) // Проверяем корректность типа
+            if (!validTypes.Contains(typeName.ToLower()))
             {
                 handleError($"Недопустимый тип данных '{typeName}'.", typeName, c);
                 return;
             }
 
-            if (c.Char == ';') // Если после типа идет ';', значит, правильно
+            chain.SkipSpaces();
+            c = chain.Next();
+
+            if (c.Char == ';') // Если есть ';' — переходим к следующему полю
             {
                 chain.GetNext();
                 state = 11;
             }
+            else if (c.Char == 'e') // Если следующий символ 'e' (начало 'end'), переходим к завершению
+            {
+                state = 12;
+            }
             else
             {
-                handleError("Ожидалась ';' после типа данных.", c.Char.ToString(), c);
+                handleError("Ожидалась ';' или 'end'.", c.Char.ToString(), c);
             }
         }
 
