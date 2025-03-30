@@ -21,27 +21,28 @@ end;
 ```
 
 ### 3. Разработанная грамматика 
-1) '<OPR>' → 'type' <SPACE>
-2) <SPACE> → ' ' <ID>
-3) <ID> → letter <IDREM>
-4) <IDREM> → letter | digit <IDREM>
-5) <IDREM> → '=' <REC>
-6) <REC> → 'record' <SPACE>
-7) <SPACE> → ' ' <FIELD>
-8) <FIELD> → letter <FIELDREM>
-9) <FIELDREM> → letter | digit <FIELDREM>
-10) <FIELDREM> → ',' <FIELDREM>
-11) <FIELDREM> → ':' <TYPE>
-12) <TYPE> → type <END>
-13) <END> → 'end' <SEMICOLON>
-14) <SEMICOLON> -> ';'
-‹Digit› → “0” | “1” | “2” | “3” | “4” | “5” | “6” | “7” | “8” | “9”
-‹Letter› → “a” | “b” | “c” | ... | “z” | “A” | “B” | “C” | ... | “Z”
-Следуя введенному формальному определению грамматики, представим G[‹OPR›] ее составляющими:
-Z = ‹OPR›;
-VT = {a, b, c, ..., z, A, B, C, ..., Z, "=", ":", ",", ";", 0, 1, 2, ..., 9};
-VN = {‹OPR›, ‹ID›, ‹IDREM›, <SPACE>, <FIELD>, <FIELDREM>, <REC>, <TYPE>, <END>, <SEMICOLON>,
-"type", "record", "end", "integer", "real", "char", "boolean", "string", "var" }.
+1) `<OPR>` → `'type'` `<SPACE>`
+2) `<SPACE>` → `' '` `<ID>`
+3) `<ID>` → `letter` `<IDREM>`
+4) `<IDREM>` → `letter` | `digit` `<IDREM>`
+5) `<IDREM>` → `'='` `<REC>`
+6) `<REC>` → `'record'` `<SPACE>`
+7) `<SPACE>` → `' '` `<FIELD>`
+8) `<FIELD>` → `letter` `<FIELDREM>`
+9) `<FIELDREM>` → `letter` | `digit` `<FIELDREM>`
+10) `<FIELDREM>` → `','` `<FIELDREM>`
+11) `<FIELDREM>` → `':'` `<TYPE>`
+12) `<TYPE>` → `type` `<END>`
+13) `<END>` → `'end'` `<SEMICOLON>`
+14) `<SEMICOLON>` → `';'`
+
+`<Digit>` → `0` | `1` | `2` | `3` | `4` | `5` | `6` | `7` | `8` | `9`  
+`<Letter>` → `a` | `b` | `c` | ... | `z` | `A` | `B` | `C` | ... | `Z`  
+
+Следуя введенному формальному определению грамматики, представим `G[<OPR>]` ее составляющими:  
+- **Z** = `<OPR>`  
+- **VT** = `{a, b, c, ..., z, A, B, C, ..., Z, "=", ":", ",", ";", 0, 1, 2, ..., 9}`  
+- **VN** = `{<OPR>, <ID>, <IDREM>, <SPACE>, <FIELD>, <FIELDREM>, <REC>, <TYPE>, <END>, <SEMICOLON>, "type", "record", "end", "integer", "real", "char", "boolean", "string", "var" }`  
  
 
 ### 4. Классификация грамматики  
