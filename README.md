@@ -53,5 +53,5 @@ end;
 ![image_2025-03-30_11-24-45](https://github.com/user-attachments/assets/5176714c-5984-4a51-b29f-78126c009c25)
 
 ### 6. Тестовые примеры
-![image_2025-03-30_12-56-08](https://github.com/user-attachments/assets/720e35d0-fcf9-455d-85db-06abf51c6c7e)
-
+![image_2025-03-30_12-56-08](https://github.com/user-attachments/assets/f64584af-bbce-481e-abea-860848028619)
+![image_2025-03-30_23-24-02](https://github.com/user-attachments/assets/32a96b65-88f7-4c9c-a71b-a70296bf4c65)
