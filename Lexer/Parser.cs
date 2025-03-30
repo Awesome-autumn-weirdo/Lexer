@@ -319,7 +319,7 @@ namespace Lexer
                 // Пропускаем пробелы и проверяем следующий символ
                 chain.SkipSpaces();
                 c = chain.Next();
-
+                
                 if (char.IsLetter(c.Char) && validTypes.Contains(c.Char.ToString()))
                 {
                     handleError("Пропущено двоеточие перед типом данных", "", c);
