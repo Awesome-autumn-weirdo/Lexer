@@ -21,7 +21,7 @@ end;
 ```
 
 ### 3. Разработанная грамматика 
-1) <OPR> → 'type' <SPACE>
+1) '<OPR>' → 'type' <SPACE>
 2) <SPACE> → ' ' <ID>
 3) <ID> → letter <IDREM>
 4) <IDREM> → letter | digit <IDREM>
