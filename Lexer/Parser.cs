@@ -4,304 +4,353 @@ using System.Linq;
 
 namespace Lexer
 {
-    public class RecordTypeParser
+    class ParseError : Exception
     {
-        public enum TokenType
+        public int Idx { get; }
+        public string IncorrStr { get; }
+
+        public ParseError(string msg, string rem, int index) : base(msg)
         {
-            KeywordType,
-            Identifier,
-            KeywordRecord,
-            Comma,
-            Colon,
-            Semicolon,
-            KeywordEnd,
-            TypeKeyword,
-            Equals,
-            Unknown,
-            EOF
+            IncorrStr = rem;
+            Idx = index;
+        }
+    }
+
+    class Character
+    {
+        public char Char { get; }
+        public int Idx { get; }
+
+        public Character(char c, int idx)
+        {
+            Char = c;
+            Idx = idx;
+        }
+    }
+
+    class CharChain
+    {
+        private readonly char[] chars;
+        private int index;
+        private readonly int maxLength;
+
+        public CharChain(string text)
+        {
+            chars = text.ToCharArray();
+            index = 0;
+            maxLength = chars.Length;
         }
 
-        public class Token
+        public Character GetNext()
         {
-            public TokenType Type { get; set; }
-            public string Value { get; set; }
-            public int Line { get; set; }
-            public int Position { get; set; }
+            if (index >= maxLength)
+                return new Character('\0', index);
 
-            public Token(TokenType type, string value, int line, int position)
-            {
-                Type = type;
-                Value = value;
-                Line = line;
-                Position = position;
-            }
+            return new Character(chars[index++], index - 1);
         }
 
-        public class ParseError
+        public Character Next()
         {
-            public string Message { get; set; }
-            public int Line { get; set; }
-            public int Position { get; set; }
-            public string Fragment { get; set; }
+            if (index >= maxLength)
+                return new Character('\0', index);
 
-            public ParseError(string message, int line, int position, string fragment)
-            {
-                Message = message;
-                Line = line;
-                Position = position;
-                Fragment = fragment;
-            }
+            return new Character(chars[index], index);
         }
 
-        private string input;
-        private int position;
-        private int line;
-        private int lineStartPosition;
-        private List<Token> tokens;
-        private List<ParseError> errors;
-
-        private static readonly HashSet<string> TypeKeywords = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
+        public void SkipSpaces()
         {
-            "real", "integer", "boolean", "char", "string"
-        };
+            while (index < maxLength && char.IsWhiteSpace(chars[index]))
+                index++;
+        }
+    }
 
-        public RecordTypeParser(string input)
+    class RecordTypeParser
+    {
+        private CharChain chain;
+        private int state;
+        private readonly List<ParseError> errors;
+        private int iterationCount;
+        private const int MaxIterations = 1000; // Защита от бесконечного цикла
+
+        public RecordTypeParser()
         {
-            this.input = input;
-            position = 0;
-            line = 1;
-            lineStartPosition = 0;
-            tokens = new List<Token>();
             errors = new List<ParseError>();
         }
 
-        public bool Parse()
-        {
-            Tokenize();
-            return ParseTypeDefinitions();
-        }
+        public List<ParseError> GetErrors() => errors;
 
-        public List<ParseError> GetErrors()
+        public bool Parse(CharChain c)
         {
-            return errors;
-        }
+            chain = c;
+            state = 1;
+            iterationCount = 0;
 
-        private void Tokenize()
-        {
-            while (position < input.Length)
+            chain.SkipSpaces();
+
+            while (state != 14 && iterationCount < MaxIterations)
             {
-                char current = input[position];
+                iterationCount++;
 
-                if (char.IsWhiteSpace(current))
+                switch (state)
                 {
-                    if (current == '\n')
-                    {
-                        line++;
-                        lineStartPosition = position + 1;
-                    }
-                    position++;
-                    continue;
+                    case 1: state1(); break;
+                    case 2: state2(); break;
+                    case 3: state3(); break;
+                    case 4: state4(); break;
+                    case 5: state5(); break;
+                    case 6: state6(); break;
+                    case 7: state7(); break;
+                    case 8: state8(); break;
+                    case 9: state9(); break;
+                    case 10: state10(); break;
+                    case 11: state11(); break;
+                    case 12: state12(); break;
+                    case 13: state13(); break;
                 }
 
-                if (char.IsLetter(current))
-                {
-                    string word = ReadWord();
-                    TokenType type = GetKeywordType(word);
-                    tokens.Add(new Token(type, word, line, position - lineStartPosition + 1));
-                    continue;
-                }
-
-                if (current == ',')
-                {
-                    tokens.Add(new Token(TokenType.Comma, ",", line, position - lineStartPosition + 1));
-                    position++;
-                    continue;
-                }
-
-                if (current == ':')
-                {
-                    tokens.Add(new Token(TokenType.Colon, ":", line, position - lineStartPosition + 1));
-                    position++;
-                    continue;
-                }
-
-                if (current == ';')
-                {
-                    tokens.Add(new Token(TokenType.Semicolon, ";", line, position - lineStartPosition + 1));
-                    position++;
-                    continue;
-                }
-
-                if (current == '=')
-                {
-                    tokens.Add(new Token(TokenType.Equals, "=", line, position - lineStartPosition + 1));
-                    position++;
-                    continue;
-                }
-
-                tokens.Add(new Token(TokenType.Unknown, current.ToString(), line, position - lineStartPosition + 1));
-                position++;
+                chain.SkipSpaces();
             }
 
-            tokens.Add(new Token(TokenType.EOF, "", line, position - lineStartPosition + 1));
+            if (iterationCount >= MaxIterations)
+            {
+                errors.Add(new ParseError("Превышено максимальное количество итераций", "", chain.Next().Idx));
+            }
+
+            return errors.Count == 0;
         }
 
-        private string ReadWord()
+        private void handleError(string msg, string removed, Character c)
         {
-            int start = position;
-            while (position < input.Length && char.IsLetterOrDigit(input[position]))
-            {
-                position++;
-            }
-            return input.Substring(start, position - start);
+            errors.Add(new ParseError(msg, removed, c.Idx));
+            state = 14; // Переходим в конечное состояние при ошибке
         }
 
-        private TokenType GetKeywordType(string word)
+        private readonly HashSet<string> validTypes = new HashSet<string>
         {
-            switch (word.ToLower())
-            {
-                case "type": return TokenType.KeywordType;
-                case "record": return TokenType.KeywordRecord;
-                case "end": return TokenType.KeywordEnd;
-                default:
-                    return TypeKeywords.Contains(word) ? TokenType.TypeKeyword : TokenType.Identifier;
-            }
-        }
+            "integer", "real", "char", "boolean", "string", "var"
+        };
 
-        private bool ParseTypeDefinitions()
+        private bool tryStop()
         {
-            int currentToken = 0;
-            bool hasValidType = false;
-
-            while (currentToken < tokens.Count && tokens[currentToken].Type != TokenType.EOF)
+            char next = chain.Next().Char;
+            if (next == '\0' || next == ';')
             {
-                if (tokens[currentToken].Type == TokenType.KeywordType)
-                {
-                    if (!ParseSingleTypeDefinition(ref currentToken))
-                    {
-                        return false;
-                    }
-                    hasValidType = true;
-                }
-                else
-                {
-                    var token = tokens[currentToken];
-                    AddError($"Неожиданный токен '{token.Value}', ожидается 'type'", token.Line, token.Position, token.Value);
-                    return false;
-                }
+                chain.GetNext();
+                state = 14;
+                return true;
             }
-
-            if (!hasValidType)
-            {
-                AddError("Не найдено ни одного определения типа", 1, 1, "");
-                return false;
-            }
-
-            return true;
+            return false;
         }
 
-        private bool ParseSingleTypeDefinition(ref int currentToken)
+        private void state1()
         {
-            // type <имя> = record ... end;
-            if (!CheckToken(ref currentToken, TokenType.KeywordType, "Ожидается ключевое слово 'type'"))
-                return false;
-
-            if (!CheckToken(ref currentToken, TokenType.Identifier, "Ожидается идентификатор"))
-                return false;
-
-            if (!CheckToken(ref currentToken, TokenType.Equals, "Ожидается символ '='"))
-                return false;
-
-            if (!CheckToken(ref currentToken, TokenType.KeywordRecord, "Ожидается ключевое слово 'record'"))
-                return false;
-
-            // Обрабатываем поля записи
-            bool hasFields = false;
-            while (currentToken < tokens.Count &&
-                   tokens[currentToken].Type != TokenType.KeywordEnd &&
-                   tokens[currentToken].Type != TokenType.KeywordType)
-            {
-                if (!ParseFieldDeclaration(ref currentToken))
-                    return false;
-                hasFields = true;
-            }
-
-            if (!hasFields)
-            {
-                AddError("Запись должна содержать хотя бы одно поле", tokens[currentToken].Line, tokens[currentToken].Position, "");
-                return false;
-            }
-
-            // Проверяем завершение: end;
-            if (!CheckToken(ref currentToken, TokenType.KeywordEnd, "Ожидается ключевое слово 'end'"))
-                return false;
-
-            if (!CheckToken(ref currentToken, TokenType.Semicolon, "Ожидается символ ';' после 'end'"))
-                return false;
-
-            return true;
+            Character c = chain.GetNext();
+            if (c.Char == 't')
+                state = 2;
+            else
+                handleError("Ожидалось 'type'.", c.Char.ToString(), c);
         }
 
-        private bool ParseFieldDeclaration(ref int currentToken)
+        private void state2()
         {
-            // Обрабатываем список идентификаторов
-            if (!CheckToken(ref currentToken, TokenType.Identifier, "Ожидается идентификатор"))
-                return false;
+            Character c = chain.Next();
+            if (c.Char != 'y') { handleError("Ожидалось 'type'.", c.Char.ToString(), c); return; }
+            chain.GetNext();
 
-            while (CheckToken(ref currentToken, TokenType.Comma, ""))
-            {
-                if (!CheckToken(ref currentToken, TokenType.Identifier, "Ожидается идентификатор после запятой"))
-                    return false;
-            }
+            c = chain.Next();
+            if (c.Char != 'p') { handleError("Ожидалось 'type'.", c.Char.ToString(), c); return; }
+            chain.GetNext();
 
-            // Обрабатываем тип поля
-            if (!CheckToken(ref currentToken, TokenType.Colon, "Ожидается символ ':' после списка полей"))
-                return false;
+            c = chain.Next();
+            if (c.Char != 'e') { handleError("Ожидалось 'type'.", c.Char.ToString(), c); return; }
+            chain.GetNext();
 
-            if (!CheckToken(ref currentToken, TokenType.TypeKeyword, "Ожидается тип поля"))
-                return false;
-
-            // Точка с запятой не обязательна после последнего поля
-            if (currentToken < tokens.Count &&
-                tokens[currentToken].Type == TokenType.Semicolon &&
-                (currentToken + 1 >= tokens.Count ||
-                 tokens[currentToken + 1].Type != TokenType.KeywordEnd &&
-                 tokens[currentToken + 1].Type != TokenType.KeywordType))
-            {
-                currentToken++;
-            }
-
-            return true;
+            state = 3;
         }
 
-        private bool CheckToken(ref int currentToken, TokenType expectedType, string errorMessage)
+        private void state3()
         {
-            if (currentToken >= tokens.Count)
-            {
-                if (!string.IsNullOrEmpty(errorMessage))
-                {
-                    AddError(errorMessage, line, position - lineStartPosition + 1, "");
-                }
-                return false;
-            }
-
-            var token = tokens[currentToken];
-            if (token.Type != expectedType)
-            {
-                if (!string.IsNullOrEmpty(errorMessage))
-                {
-                    AddError(errorMessage, token.Line, token.Position, token.Value);
-                }
-                return false;
-            }
-
-            currentToken++;
-            return true;
+            Character c = chain.GetNext();
+            if (char.IsLetter(c.Char))
+                state = 4;
+            else
+                handleError("Ожидался идентификатор.", c.Char.ToString(), c);
         }
 
-        private void AddError(string message, int line, int position, string fragment)
+        private void state4()
         {
-            errors.Add(new ParseError(message, line, position, fragment));
+            Character c = chain.GetNext();
+            if (char.IsLetterOrDigit(c.Char))
+                state = 4;
+            else if (c.Char == '=')
+                state = 5;
+            else
+                handleError("Ожидался символ '='.", c.Char.ToString(), c);
         }
+
+        private void state5()
+        {
+            Character c = chain.GetNext();
+            if (c.Char == 'r')
+                state = 6;
+            else
+                handleError("Ожидалось 'record'.", c.Char.ToString(), c);
+        }
+
+        private void state6()
+        {
+            if (chain.Next().Char == 'e' && chain.GetNext().Char == 'e' &&
+                chain.Next().Char == 'c' && chain.GetNext().Char == 'c' &&
+                chain.Next().Char == 'o' && chain.GetNext().Char == 'o' &&
+                chain.Next().Char == 'r' && chain.GetNext().Char == 'r' &&
+                chain.Next().Char == 'd' && chain.GetNext().Char == 'd')
+            {
+                state = 7;
+                chain.SkipSpaces();
+            }
+            else
+                handleError("Ожидалось 'record'.", "", chain.GetNext());
+        }
+
+        private void state7()
+        {
+            Character c = chain.GetNext();
+            if (char.IsLetter(c.Char))
+                state = 8;
+            else
+                handleError("Ожидался идентификатор поля.", c.Char.ToString(), c);
+        }
+
+        private void state8()
+        {
+            Character c = chain.GetNext();
+
+            if (char.IsLetterOrDigit(c.Char))
+            {
+                state = 8; // Остаемся в этом же состоянии, пока продолжается имя переменной
+            }
+            else if (c.Char == ',')
+            {
+                state = 7; // Переход к следующему идентификатору
+            }
+            else if (c.Char == ':')
+            {
+                state = 9; // Переход к типу данных
+            }
+            else
+            {
+                handleError("Ожидалась ',' или ':'.", c.Char.ToString(), c);
+            }
+        }
+
+
+        private void state9()
+        {
+            Character c = chain.Next();
+            if (char.IsLetter(c.Char))
+                state = 10;
+            else
+                handleError("Ожидался тип данных.", c.Char.ToString(), c);
+        }
+
+        private void state10()
+        {
+            string typeName = "";
+            Character c = chain.Next();
+
+            while (char.IsLetter(c.Char)) // Читаем название типа целиком
+            {
+                typeName += c.Char;
+                chain.GetNext(); // Переходим к следующему символу
+                c = chain.Next();
+            }
+
+            if (!validTypes.Contains(typeName.ToLower())) // Проверяем корректность типа
+            {
+                handleError($"Недопустимый тип данных '{typeName}'.", typeName, c);
+                return;
+            }
+
+            if (c.Char == ';') // Если после типа идет ';', значит, правильно
+            {
+                chain.GetNext();
+                state = 11;
+            }
+            else
+            {
+                handleError("Ожидалась ';' после типа данных.", c.Char.ToString(), c);
+            }
+        }
+
+
+        private void state11()
+        {
+            Character c = chain.Next(); // Смотрим следующий символ
+
+            if (c.Char == 'e')
+            {
+                state = 12; // Переход к завершению record (end;)
+            }
+            else if (char.IsLetter(c.Char))
+            {
+                state = 7; // Переход к следующему идентификатору
+            }
+            else
+            {
+                handleError("Ожидался идентификатор нового поля или 'end'.", c.Char.ToString(), c);
+            }
+        }
+
+        private void state12()
+        {
+            // Проверяем 'e'
+            Character c = chain.GetNext();
+            if (c.Char != 'e')
+            {
+                handleError("Ожидалось 'end'.", c.Char.ToString(), c);
+                return;
+            }
+
+            // Проверяем 'n'
+            c = chain.GetNext();
+            if (c.Char != 'n')
+            {
+                handleError("Ожидалось 'end'.", c.Char.ToString(), c);
+                return;
+            }
+
+            // Проверяем 'd'
+            c = chain.GetNext();
+            if (c.Char != 'd')
+            {
+                handleError("Ожидалось 'end'.", c.Char.ToString(), c);
+                return;
+            }
+
+            chain.SkipSpaces();
+
+            // Проверяем ';'
+            c = chain.Next();
+            if (c.Char == ';')
+            {
+                chain.GetNext();
+                state = 14; // Успешный конец
+            }
+            else
+            {
+                handleError("Ожидалась ';' после 'end'.", c.Char.ToString(), c);
+            }
+        }
+
+
+        private void state13()
+        {
+            if (tryStop())
+                return;
+
+            Character c = chain.GetNext();
+            handleError("Неожиданный символ после 'end;'", c.Char.ToString(), c);
+        }
+
     }
 }

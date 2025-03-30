@@ -33,7 +33,7 @@ namespace Lexer
                 {
                     Name = "TokenCode",
                     HeaderText = "Код лексемы",
-                    Width = 100
+                    Width = 90
                 });
 
                 // Тип лексемы (ключевое слово, идентификатор, оператор и т. д.)
@@ -41,7 +41,7 @@ namespace Lexer
                 {
                     Name = "TokenType",
                     HeaderText = "Тип лексемы",
-                    Width = 150
+                    Width = 350
                 });
 
                 // Сама лексема
@@ -49,7 +49,8 @@ namespace Lexer
                 {
                     Name = "TokenValue",
                     HeaderText = "Лексема",
-                    AutoSizeMode = System.Windows.Forms.DataGridViewAutoSizeColumnMode.Fill
+                    AutoSizeMode = System.Windows.Forms.DataGridViewAutoSizeColumnMode.Fill,
+                    Width = 50
                 });
 
                 // Номер строки
@@ -57,7 +58,7 @@ namespace Lexer
                 {
                     Name = "LineNumber",
                     HeaderText = "Номер строки",
-                    Width = 110
+                    Width = 50
                 });
 
                 // Позиция в строке
@@ -65,7 +66,7 @@ namespace Lexer
                 {
                     Name = "Position",
                     HeaderText = "Позиция",
-                    Width = 110
+                    Width = 50
                 });
             }
         }
@@ -577,7 +578,7 @@ namespace Lexer
 
         private void AnalyzeRecordType()
         {
-            if (tabControl1.SelectedTab == null) return;
+            if (tabControl1.SelectedTab == null || dataGridView1 == null) return;
 
             var splitContainer = tabControl1.SelectedTab.Controls.OfType<SplitContainer>().FirstOrDefault();
             if (splitContainer == null) return;
@@ -585,31 +586,44 @@ namespace Lexer
             var editorRichTextBox = splitContainer.Panel2.Controls.OfType<RichTextBox>().FirstOrDefault();
             if (editorRichTextBox == null) return;
 
-            string inputText = editorRichTextBox.Text;
-            RecordTypeParser parser = new RecordTypeParser(inputText);
-            bool isValid = parser.Parse();
-
-            dataGridView1.Rows.Clear();
-
-            if (isValid)
+            try
             {
-                dataGridView1.Rows.Add("0", "Успех", "Синтаксис правильный", "1", "1");
-                MessageBox.Show("Анализ завершен успешно. Ошибок не найдено.", "Результат анализа",
-                                MessageBoxButtons.OK, MessageBoxIcon.Information);
+                string inputText = editorRichTextBox.Text;
+                CharChain charChain = new CharChain(inputText);
+
+                RecordTypeParser parser = new RecordTypeParser();
+                bool isValid = parser.Parse(charChain);
+
+                dataGridView1.Invoke((MethodInvoker)delegate {
+                    dataGridView1.Rows.Clear();
+
+                    if (isValid)
+                    {
+                        dataGridView1.Rows.Add("0", "Успех", "Синтаксис правильный", "1", "1");
+                        MessageBox.Show("Анализ завершен успешно. Ошибок не найдено.", "Результат анализа",
+                                        MessageBoxButtons.OK, MessageBoxIcon.Information);
+                    }
+                    else
+                    {
+                        var errors = parser.GetErrors();
+                        foreach (var error in errors)
+                        {
+                            dataGridView1.Rows.Add("Ошибка", error.Message, error.IncorrStr,
+                                                   error.Idx.ToString(), error.Idx.ToString());
+                        }
+
+                        MessageBox.Show($"Найдено {errors.Count} ошибок.", "Результат анализа",
+                                        MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                    }
+                });
             }
-            else
+            catch (Exception ex)
             {
-                var errors = parser.GetErrors();
-                foreach (var error in errors)
-                {
-                    dataGridView1.Rows.Add("Ошибка", error.Message, error.Fragment,
-                                         error.Line.ToString(), error.Position.ToString());
-                }
-
-                MessageBox.Show($"Найдено {errors.Count} ошибок.", "Результат анализа",
-                                MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                MessageBox.Show($"Ошибка при анализе: {ex.Message}", "Ошибка",
+                                MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
         }
+
 
         private void toolStripButton9_Click(object sender, EventArgs e)
         {
