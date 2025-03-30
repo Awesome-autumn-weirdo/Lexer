@@ -20,47 +20,108 @@ namespace Lexer
     {
         public char Char { get; }
         public int Idx { get; }
+        public int Line { get; }
+        public int Position { get; }
 
-        public Character(char c, int idx)
+        public Character(char c, int idx, int line, int position)
         {
             Char = c;
             Idx = idx;
+            Line = line;
+            Position = position;
         }
     }
 
     class CharChain
     {
-        private readonly char[] chars;
-        private int index;
-        private readonly int maxLength;
+        private readonly string[] lines;
+        private int currentLine = 0;
+        private int currentPos = 1;
+        private int globalIndex = 0;
 
         public CharChain(string text)
         {
-            chars = text.ToCharArray();
-            index = 0;
-            maxLength = chars.Length;
+            lines = text.Split(new[] { "\r\n", "\n" }, StringSplitOptions.None);
         }
 
         public Character GetNext()
         {
-            if (index >= maxLength)
-                return new Character('\0', index);
+            if (currentLine >= lines.Length)
+                return new Character('\0', globalIndex, currentLine + 1, 1);
 
-            return new Character(chars[index++], index - 1);
+            string line = lines[currentLine];
+            if (currentPos > line.Length)
+            {
+                currentLine++;
+                currentPos = 1;
+                return GetNext();
+            }
+
+            char c = line[currentPos - 1];
+            var character = new Character(c, globalIndex, currentLine + 1, currentPos);
+
+            currentPos++;
+            globalIndex++;
+            return character;
         }
 
         public Character Next()
         {
-            if (index >= maxLength)
-                return new Character('\0', index);
+            if (currentLine >= lines.Length)
+                return new Character('\0', globalIndex, currentLine + 1, 1);
 
-            return new Character(chars[index], index);
+            string line = lines[currentLine];
+            if (currentPos > line.Length)
+            {
+                return new Character('\n', globalIndex, currentLine + 1, currentPos);
+            }
+
+            return new Character(line[currentPos - 1], globalIndex, currentLine + 1, currentPos);
         }
 
         public void SkipSpaces()
         {
-            while (index < maxLength && char.IsWhiteSpace(chars[index]))
-                index++;
+            while (true)
+            {
+                if (currentLine >= lines.Length)
+                    break;
+
+                string line = lines[currentLine];
+                while (currentPos <= line.Length && char.IsWhiteSpace(line[currentPos - 1]))
+                {
+                    currentPos++;
+                    globalIndex++;
+                }
+
+                if (currentPos > line.Length)
+                {
+                    currentLine++;
+                    currentPos = 1;
+                }
+                else
+                {
+                    break;
+                }
+            }
+        }
+
+        public (int line, int position) GetLineAndPosition(int charIndex)
+        {
+            int line = 1;
+            int accumulatedLength = 0;
+
+            foreach (string l in lines)
+            {
+                if (charIndex < accumulatedLength + l.Length + 1)
+                {
+                    int position = charIndex - accumulatedLength + 1;
+                    return (line, Math.Min(position, l.Length + 1));
+                }
+                accumulatedLength += l.Length + 1;
+                line++;
+            }
+
+            return (line, 1);
         }
     }
 
@@ -70,7 +131,7 @@ namespace Lexer
         private int state;
         private readonly List<ParseError> errors;
         private int iterationCount;
-        private const int MaxIterations = 1000; // Защита от бесконечного цикла
+        private const int MaxIterations = 10000;
 
         public RecordTypeParser()
         {
@@ -84,10 +145,9 @@ namespace Lexer
             chain = c;
             state = 1;
             iterationCount = 0;
+            errors.Clear();
 
-            chain.SkipSpaces();
-
-            while (state != 14 && iterationCount < MaxIterations)
+            while (iterationCount < MaxIterations)
             {
                 iterationCount++;
 
@@ -106,23 +166,28 @@ namespace Lexer
                     case 11: state11(); break;
                     case 12: state12(); break;
                     case 13: state13(); break;
+                    case 14: return errors.Count == 0;
                 }
 
                 chain.SkipSpaces();
+
+                if (chain.Next().Char == '\0')
+                {
+                    if (state != 14 && state != 13 && state != 1)
+                    {
+                        errors.Add(new ParseError("Неожиданный конец файла", "", chain.Next().Idx));
+                    }
+                    return errors.Count == 0;
+                }
             }
 
-            if (iterationCount >= MaxIterations)
-            {
-                errors.Add(new ParseError("Превышено максимальное количество итераций", "", chain.Next().Idx));
-            }
-
-            return errors.Count == 0;
+            errors.Add(new ParseError("Превышено максимальное количество итераций", "", chain.Next().Idx));
+            return false;
         }
 
         private void handleError(string msg, string removed, Character c)
         {
             errors.Add(new ParseError(msg, removed, c.Idx));
-            state = 14; // Переходим в конечное состояние при ошибке
         }
 
         private readonly HashSet<string> validTypes = new HashSet<string>
@@ -130,40 +195,42 @@ namespace Lexer
             "integer", "real", "char", "boolean", "string", "var"
         };
 
-        private bool tryStop()
-        {
-            char next = chain.Next().Char;
-            if (next == '\0' || next == ';')
-            {
-                chain.GetNext();
-                state = 14;
-                return true;
-            }
-            return false;
-        }
-
         private void state1()
         {
-            Character c = chain.GetNext();
+            Character c = chain.Next();
             if (c.Char == 't')
+            {
+                chain.GetNext();
                 state = 2;
+            }
+            else if (c.Char == '\0')
+            {
+                state = 14;
+            }
             else
-                handleError("Ожидалось 'type'.", c.Char.ToString(), c);
+            {
+                handleError("Ожидалось 'type' или конец файла", c.Char.ToString(), c);
+                chain.GetNext();
+            }
         }
 
         private void state2()
         {
-            Character c = chain.Next();
-            if (c.Char != 'y') { handleError("Ожидалось 'type'.", c.Char.ToString(), c); return; }
-            chain.GetNext();
+            string expected = "ype";
+            string actual = "";
+            Character c;
 
-            c = chain.Next();
-            if (c.Char != 'p') { handleError("Ожидалось 'type'.", c.Char.ToString(), c); return; }
-            chain.GetNext();
-
-            c = chain.Next();
-            if (c.Char != 'e') { handleError("Ожидалось 'type'.", c.Char.ToString(), c); return; }
-            chain.GetNext();
+            for (int i = 0; i < expected.Length; i++)
+            {
+                c = chain.GetNext();
+                actual += c.Char;
+                if (c.Char != expected[i])
+                {
+                    handleError($"Ожидалось 'type'. Найдено 't{actual}'", "t" + actual, c);
+                    state = 3;
+                    return;
+                }
+            }
 
             state = 3;
         }
@@ -174,7 +241,7 @@ namespace Lexer
             if (char.IsLetter(c.Char))
                 state = 4;
             else
-                handleError("Ожидался идентификатор.", c.Char.ToString(), c);
+                handleError("Ожидался идентификатор", c.Char.ToString(), c);
         }
 
         private void state4()
@@ -185,7 +252,7 @@ namespace Lexer
             else if (c.Char == '=')
                 state = 5;
             else
-                handleError("Ожидался символ '='.", c.Char.ToString(), c);
+                handleError("Ожидался символ '='", c.Char.ToString(), c);
         }
 
         private void state5()
@@ -194,22 +261,29 @@ namespace Lexer
             if (c.Char == 'r')
                 state = 6;
             else
-                handleError("Ожидалось 'record'.", c.Char.ToString(), c);
+                handleError("Ожидалось 'record'", c.Char.ToString(), c);
         }
 
         private void state6()
         {
-            if (chain.Next().Char == 'e' && chain.GetNext().Char == 'e' &&
-                chain.Next().Char == 'c' && chain.GetNext().Char == 'c' &&
-                chain.Next().Char == 'o' && chain.GetNext().Char == 'o' &&
-                chain.Next().Char == 'r' && chain.GetNext().Char == 'r' &&
-                chain.Next().Char == 'd' && chain.GetNext().Char == 'd')
+            string expected = "ecord";
+            string actual = "";
+            Character c;
+
+            for (int i = 0; i < expected.Length; i++)
             {
-                state = 7;
-                chain.SkipSpaces();
+                c = chain.GetNext();
+                actual += c.Char;
+                if (c.Char != expected[i])
+                {
+                    handleError($"Ожидалось 'record'. Найдено 'r{actual}'", "r" + actual, c);
+                    state = 7;
+                    return;
+                }
             }
-            else
-                handleError("Ожидалось 'record'.", "", chain.GetNext());
+
+            state = 7;
+            chain.SkipSpaces();
         }
 
         private void state7()
@@ -218,31 +292,52 @@ namespace Lexer
             if (char.IsLetter(c.Char))
                 state = 8;
             else
-                handleError("Ожидался идентификатор поля.", c.Char.ToString(), c);
+                handleError("Ожидался идентификатор поля", c.Char.ToString(), c);
         }
 
         private void state8()
         {
-            Character c = chain.GetNext();
+            Character c = chain.Next();
 
             if (char.IsLetterOrDigit(c.Char))
             {
-                state = 8; // Остаемся в этом же состоянии, пока продолжается имя переменной
+                chain.GetNext();
+                state = 8;
             }
             else if (c.Char == ',')
             {
-                state = 7; // Переход к следующему идентификатору
+                chain.GetNext();
+                state = 7;
             }
             else if (c.Char == ':')
             {
-                state = 9; // Переход к типу данных
+                chain.GetNext();
+                state = 9;
+            }
+            else if (char.IsWhiteSpace(c.Char))
+            {
+                // Пропускаем пробелы и проверяем следующий символ
+                chain.SkipSpaces();
+                c = chain.Next();
+
+                if (char.IsLetter(c.Char) && validTypes.Contains(c.Char.ToString()))
+                {
+                    handleError("Пропущено двоеточие перед типом данных", "", c);
+                    state = 9;
+                }
+                else
+                {
+                    handleError("Ожидалась ',' или ':'", "", c);
+                    state = 7;
+                }
             }
             else
             {
-                handleError("Ожидалась ',' или ':'.", c.Char.ToString(), c);
+                handleError("Ожидалась ',' или ':' или продолжение идентификатора", c.Char.ToString(), c);
+                chain.GetNext();
+                state = 7;
             }
         }
-
 
         private void state9()
         {
@@ -250,7 +345,7 @@ namespace Lexer
             if (char.IsLetter(c.Char))
                 state = 10;
             else
-                handleError("Ожидался тип данных.", c.Char.ToString(), c);
+                handleError("Ожидался тип данных", c.Char.ToString(), c);
         }
 
         private void state10()
@@ -258,7 +353,7 @@ namespace Lexer
             string typeName = "";
             Character c = chain.Next();
 
-            while (char.IsLetter(c.Char)) // Читаем название типа
+            while (char.IsLetter(c.Char))
             {
                 typeName += c.Char;
                 chain.GetNext();
@@ -267,97 +362,118 @@ namespace Lexer
 
             if (!validTypes.Contains(typeName.ToLower()))
             {
-                handleError($"Недопустимый тип данных '{typeName}'.", typeName, c);
-                return;
+                handleError($"Недопустимый тип данных '{typeName}'", typeName, c);
             }
 
             chain.SkipSpaces();
             c = chain.Next();
 
-            if (c.Char == ';') // Если есть ';' — переходим к следующему полю
+            if (c.Char == ';')
             {
                 chain.GetNext();
                 state = 11;
             }
-            else if (c.Char == 'e') // Если следующий символ 'e' (начало 'end'), переходим к завершению
+            else if (c.Char == 'e')
             {
                 state = 12;
             }
-            else
+            else if (c.Char == '\0')
             {
-                handleError("Ожидалась ';' или 'end'.", c.Char.ToString(), c);
-            }
-        }
-
-
-        private void state11()
-        {
-            Character c = chain.Next(); // Смотрим следующий символ
-
-            if (c.Char == 'e')
-            {
-                state = 12; // Переход к завершению record (end;)
+                handleError("Неожиданный конец файла при определении типа", "", c);
+                state = 14;
             }
             else if (char.IsLetter(c.Char))
             {
-                state = 7; // Переход к следующему идентификатору
+                handleError("Пропущена ';' после определения типа", "", c);
+                state = 7;
             }
             else
             {
-                handleError("Ожидался идентификатор нового поля или 'end'.", c.Char.ToString(), c);
+                handleError("Ожидалась ';' или 'end'", c.Char.ToString(), c);
+                state = 11;
+            }
+        }
+
+        private void state11()
+        {
+            Character c = chain.Next();
+
+            if (c.Char == 'e')
+            {
+                state = 12;
+            }
+            else if (char.IsLetter(c.Char))
+            {
+                state = 7;
+            }
+            else if (c.Char == '\0')
+            {
+                handleError("Неожиданный конец файла", "", c);
+                state = 14;
+            }
+            else
+            {
+                handleError("Ожидался идентификатор нового поля или 'end'", c.Char.ToString(), c);
+                state = 12;
             }
         }
 
         private void state12()
         {
-            // Проверяем 'e'
-            Character c = chain.GetNext();
-            if (c.Char != 'e')
-            {
-                handleError("Ожидалось 'end'.", c.Char.ToString(), c);
-                return;
-            }
+            string expected = "end";
+            string actual = "";
+            Character c;
 
-            // Проверяем 'n'
-            c = chain.GetNext();
-            if (c.Char != 'n')
+            for (int i = 0; i < expected.Length; i++)
             {
-                handleError("Ожидалось 'end'.", c.Char.ToString(), c);
-                return;
-            }
-
-            // Проверяем 'd'
-            c = chain.GetNext();
-            if (c.Char != 'd')
-            {
-                handleError("Ожидалось 'end'.", c.Char.ToString(), c);
-                return;
+                c = chain.GetNext();
+                actual += c.Char;
+                if (c.Char != expected[i])
+                {
+                    handleError($"Ожидалось 'end'. Найдено '{actual}'", actual, c);
+                    state = 13;
+                    return;
+                }
             }
 
             chain.SkipSpaces();
-
-            // Проверяем ';'
             c = chain.Next();
+
             if (c.Char == ';')
             {
                 chain.GetNext();
-                state = 14; // Успешный конец
+                state = 13;
+            }
+            else if (c.Char == '\0')
+            {
+                handleError("Пропущена ';' после 'end'", "", c);
+                state = 14;
             }
             else
             {
-                handleError("Ожидалась ';' после 'end'.", c.Char.ToString(), c);
+                handleError("Ожидалась ';' после 'end'", c.Char.ToString(), c);
+                state = 13;
             }
         }
 
-
         private void state13()
         {
-            if (tryStop())
-                return;
+            chain.SkipSpaces();
+            Character c = chain.Next();
 
-            Character c = chain.GetNext();
-            handleError("Неожиданный символ после 'end;'", c.Char.ToString(), c);
+            if (c.Char == 't')
+            {
+                state = 1;
+            }
+            else if (c.Char == '\0')
+            {
+                state = 14;
+            }
+            else
+            {
+                handleError("Ожидалось новое определение типа или конец файла", c.Char.ToString(), c);
+                state = 1;
+            }
         }
-
     }
 }

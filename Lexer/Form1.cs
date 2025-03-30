@@ -41,7 +41,7 @@ namespace Lexer
                 {
                     Name = "TokenType",
                     HeaderText = "Тип лексемы",
-                    Width = 350
+                    Width = 325
                 });
 
                 // Сама лексема
@@ -50,7 +50,7 @@ namespace Lexer
                     Name = "TokenValue",
                     HeaderText = "Лексема",
                     AutoSizeMode = System.Windows.Forms.DataGridViewAutoSizeColumnMode.Fill,
-                    Width = 50
+                    Width = 70
                 });
 
                 // Номер строки
@@ -58,7 +58,7 @@ namespace Lexer
                 {
                     Name = "LineNumber",
                     HeaderText = "Номер строки",
-                    Width = 50
+                    Width = 70
                 });
 
                 // Позиция в строке
@@ -66,7 +66,7 @@ namespace Lexer
                 {
                     Name = "Position",
                     HeaderText = "Позиция",
-                    Width = 50
+                    Width = 70
                 });
             }
         }
@@ -608,8 +608,14 @@ namespace Lexer
                         var errors = parser.GetErrors();
                         foreach (var error in errors)
                         {
-                            dataGridView1.Rows.Add("Ошибка", error.Message, error.IncorrStr,
-                                                   error.Idx.ToString(), error.Idx.ToString());
+                            var (line, pos) = charChain.GetLineAndPosition(error.Idx);
+                            dataGridView1.Rows.Add(
+                                "Ошибка",
+                                error.Message,
+                                error.IncorrStr,
+                                line.ToString(),
+                                pos.ToString()
+                            );
                         }
 
                         MessageBox.Show($"Найдено {errors.Count} ошибок.", "Результат анализа",
