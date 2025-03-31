@@ -19,9 +19,11 @@ namespace Lexer
         {
             InitializeComponent();
             InitializeDataGridViewColumns(dataGridView1);
+
+            CreateNewTab(null, "Новый документ", "type Point = record\r\n    x, y: real\r\nend;\r\n\r\ntype Person = record\r\n    name: string;\r\n    age: integer\r\nend;");
         }
 
-        private void InitializeDataGridViewColumns(DataGridView dataGridView)
+        private void InitializeDataGridViewColumns(DataGridView dataGridView1)
         {
             if (dataGridView1 != null)
             {
@@ -576,7 +578,7 @@ namespace Lexer
             оПрограммеToolStripMenuItem_Click(sender, e);
         }
 
-        private void AnalyzeRecordType()
+        private void Analyze()
         {
             if (tabControl1.SelectedTab == null || dataGridView1 == null) return;
 
@@ -589,15 +591,13 @@ namespace Lexer
             try
             {
                 string inputText = editorRichTextBox.Text;
-                CharChain charChain = new CharChain(inputText);
-
-                RecordTypeParser parser = new RecordTypeParser();
-                bool isValid = parser.Parse(charChain);
+                var parser = new RecordParser();
+                var errors = parser.ParseRecord(inputText);
 
                 dataGridView1.Invoke((MethodInvoker)delegate {
                     dataGridView1.Rows.Clear();
 
-                    if (isValid)
+                    if (errors.Count == 0)
                     {
                         dataGridView1.Rows.Add("0", "Успех", "Синтаксис правильный", "1", "1");
                         MessageBox.Show("Анализ завершен успешно. Ошибок не найдено.", "Результат анализа",
@@ -605,16 +605,33 @@ namespace Lexer
                     }
                     else
                     {
-                        var errors = parser.GetErrors();
                         foreach (var error in errors)
                         {
-                            var (line, pos) = charChain.GetLineAndPosition(error.Idx);
+                            // Извлекаем позицию из текста ошибки
+                            int pos = ExtractPosition(error);
+                            int line = 1, linePos = 1, currentPos = 0;
+
+                            // Определяем номер строки и позицию в строке
+                            for (int i = 0; i < inputText.Length && currentPos < pos; i++)
+                            {
+                                if (inputText[i] == '\n')
+                                {
+                                    line++;
+                                    linePos = 1;
+                                }
+                                else
+                                {
+                                    linePos++;
+                                }
+                                currentPos++;
+                            }
+
                             dataGridView1.Rows.Add(
                                 "Ошибка",
-                                error.Message,
-                                error.IncorrStr,
+                                error,
+                                "", // Доп. информация
                                 line.ToString(),
-                                pos.ToString()
+                                linePos.ToString()
                             );
                         }
 
@@ -630,15 +647,32 @@ namespace Lexer
             }
         }
 
+        private int ExtractPosition(string errorMessage)
+        {
+            int posStart = errorMessage.LastIndexOf("(позиция ");
+            if (posStart == -1) return 0; // Если позиции нет, считаем 0
+
+            posStart += 9; // Длина строки "(позиция "
+            int posEnd = errorMessage.IndexOf(")", posStart);
+            if (posEnd == -1) return 0;
+
+            string posStr = errorMessage.Substring(posStart, posEnd - posStart);
+            if (int.TryParse(posStr, out int position))
+            {
+                return position;
+            }
+
+            return 0; // Если не получилось извлечь позицию
+        }
 
         private void toolStripButton9_Click(object sender, EventArgs e)
         {
-            AnalyzeRecordType();
+            Analyze();
         }
 
         private void пускToolStripMenuItem_Click(object sender, EventArgs e)
         {
-            AnalyzeRecordType();
+            Analyze();
         }
 
 
