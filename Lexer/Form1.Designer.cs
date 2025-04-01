@@ -46,15 +46,6 @@
             this.вставитьToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.удалитьToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.выделитьВсеToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
-            this.текстToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
-            this.постановкаЗадачиToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
-            this.грамматикаToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
-            this.классификацияГрамматикиToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
-            this.методАнализаToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
-            this.диагностикаИНейтрализацияОшибокToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
-            this.тестовыйПримерToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
-            this.списокЛитературыToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
-            this.исходныйКодПрограммыToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.пускToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.справкаToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.вызовСправкиToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
@@ -80,7 +71,6 @@
             this.Column2 = new System.Windows.Forms.DataGridViewTextBoxColumn();
             this.Column3 = new System.Windows.Forms.DataGridViewTextBoxColumn();
             this.Column4 = new System.Windows.Forms.DataGridViewTextBoxColumn();
-            this.tabPage2 = new System.Windows.Forms.TabPage();
             this.menuStrip1.SuspendLayout();
             this.toolStrip1.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)(this.splitContainer1)).BeginInit();
@@ -100,7 +90,6 @@
             this.menuStrip1.Items.AddRange(new System.Windows.Forms.ToolStripItem[] {
             this.файлToolStripMenuItem,
             this.правкаToolStripMenuItem,
-            this.текстToolStripMenuItem,
             this.пускToolStripMenuItem,
             this.справкаToolStripMenuItem});
             this.menuStrip1.Location = new System.Drawing.Point(0, 0);
@@ -218,69 +207,6 @@
             this.выделитьВсеToolStripMenuItem.Size = new System.Drawing.Size(213, 26);
             this.выделитьВсеToolStripMenuItem.Text = "Выделить все";
             this.выделитьВсеToolStripMenuItem.Click += new System.EventHandler(this.выделитьВсёToolStripMenuItem_Click);
-            // 
-            // текстToolStripMenuItem
-            // 
-            this.текстToolStripMenuItem.DropDownItems.AddRange(new System.Windows.Forms.ToolStripItem[] {
-            this.постановкаЗадачиToolStripMenuItem,
-            this.грамматикаToolStripMenuItem,
-            this.классификацияГрамматикиToolStripMenuItem,
-            this.методАнализаToolStripMenuItem,
-            this.диагностикаИНейтрализацияОшибокToolStripMenuItem,
-            this.тестовыйПримерToolStripMenuItem,
-            this.списокЛитературыToolStripMenuItem,
-            this.исходныйКодПрограммыToolStripMenuItem});
-            this.текстToolStripMenuItem.Name = "текстToolStripMenuItem";
-            this.текстToolStripMenuItem.Size = new System.Drawing.Size(74, 25);
-            this.текстToolStripMenuItem.Text = "Текст";
-            // 
-            // постановкаЗадачиToolStripMenuItem
-            // 
-            this.постановкаЗадачиToolStripMenuItem.Name = "постановкаЗадачиToolStripMenuItem";
-            this.постановкаЗадачиToolStripMenuItem.Size = new System.Drawing.Size(433, 26);
-            this.постановкаЗадачиToolStripMenuItem.Text = "Постановка задачи";
-            // 
-            // грамматикаToolStripMenuItem
-            // 
-            this.грамматикаToolStripMenuItem.Name = "грамматикаToolStripMenuItem";
-            this.грамматикаToolStripMenuItem.Size = new System.Drawing.Size(433, 26);
-            this.грамматикаToolStripMenuItem.Text = "Грамматика";
-            // 
-            // классификацияГрамматикиToolStripMenuItem
-            // 
-            this.классификацияГрамматикиToolStripMenuItem.Name = "классификацияГрамматикиToolStripMenuItem";
-            this.классификацияГрамматикиToolStripMenuItem.Size = new System.Drawing.Size(433, 26);
-            this.классификацияГрамматикиToolStripMenuItem.Text = "Классификация грамматики";
-            // 
-            // методАнализаToolStripMenuItem
-            // 
-            this.методАнализаToolStripMenuItem.Name = "методАнализаToolStripMenuItem";
-            this.методАнализаToolStripMenuItem.Size = new System.Drawing.Size(433, 26);
-            this.методАнализаToolStripMenuItem.Text = "Метод анализа";
-            // 
-            // диагностикаИНейтрализацияОшибокToolStripMenuItem
-            // 
-            this.диагностикаИНейтрализацияОшибокToolStripMenuItem.Name = "диагностикаИНейтрализацияОшибокToolStripMenuItem";
-            this.диагностикаИНейтрализацияОшибокToolStripMenuItem.Size = new System.Drawing.Size(433, 26);
-            this.диагностикаИНейтрализацияОшибокToolStripMenuItem.Text = "Диагностика и нейтрализация ошибок";
-            // 
-            // тестовыйПримерToolStripMenuItem
-            // 
-            this.тестовыйПримерToolStripMenuItem.Name = "тестовыйПримерToolStripMenuItem";
-            this.тестовыйПримерToolStripMenuItem.Size = new System.Drawing.Size(433, 26);
-            this.тестовыйПримерToolStripMenuItem.Text = "Тестовый пример";
-            // 
-            // списокЛитературыToolStripMenuItem
-            // 
-            this.списокЛитературыToolStripMenuItem.Name = "списокЛитературыToolStripMenuItem";
-            this.списокЛитературыToolStripMenuItem.Size = new System.Drawing.Size(433, 26);
-            this.списокЛитературыToolStripMenuItem.Text = "Список литературы";
-            // 
-            // исходныйКодПрограммыToolStripMenuItem
-            // 
-            this.исходныйКодПрограммыToolStripMenuItem.Name = "исходныйКодПрограммыToolStripMenuItem";
-            this.исходныйКодПрограммыToolStripMenuItem.Size = new System.Drawing.Size(433, 26);
-            this.исходныйКодПрограммыToolStripMenuItem.Text = "Исходный код программы";
             // 
             // пускToolStripMenuItem
             // 
@@ -478,7 +404,6 @@
             // tabControl2
             // 
             this.tabControl2.Controls.Add(this.tabPage1);
-            this.tabControl2.Controls.Add(this.tabPage2);
             this.tabControl2.Dock = System.Windows.Forms.DockStyle.Fill;
             this.tabControl2.Location = new System.Drawing.Point(0, 0);
             this.tabControl2.Name = "tabControl2";
@@ -561,16 +486,6 @@
             this.Column4.MinimumWidth = 6;
             this.Column4.Name = "Column4";
             // 
-            // tabPage2
-            // 
-            this.tabPage2.Location = new System.Drawing.Point(4, 25);
-            this.tabPage2.Name = "tabPage2";
-            this.tabPage2.Padding = new System.Windows.Forms.Padding(3);
-            this.tabPage2.Size = new System.Drawing.Size(974, 177);
-            this.tabPage2.TabIndex = 1;
-            this.tabPage2.Text = "Вывод";
-            this.tabPage2.UseVisualStyleBackColor = true;
-            // 
             // Form1
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(8F, 16F);
@@ -616,15 +531,6 @@
         private System.Windows.Forms.ToolStripMenuItem вставитьToolStripMenuItem;
         private System.Windows.Forms.ToolStripMenuItem удалитьToolStripMenuItem;
         private System.Windows.Forms.ToolStripMenuItem выделитьВсеToolStripMenuItem;
-        private System.Windows.Forms.ToolStripMenuItem текстToolStripMenuItem;
-        private System.Windows.Forms.ToolStripMenuItem постановкаЗадачиToolStripMenuItem;
-        private System.Windows.Forms.ToolStripMenuItem грамматикаToolStripMenuItem;
-        private System.Windows.Forms.ToolStripMenuItem классификацияГрамматикиToolStripMenuItem;
-        private System.Windows.Forms.ToolStripMenuItem методАнализаToolStripMenuItem;
-        private System.Windows.Forms.ToolStripMenuItem диагностикаИНейтрализацияОшибокToolStripMenuItem;
-        private System.Windows.Forms.ToolStripMenuItem тестовыйПримерToolStripMenuItem;
-        private System.Windows.Forms.ToolStripMenuItem списокЛитературыToolStripMenuItem;
-        private System.Windows.Forms.ToolStripMenuItem исходныйКодПрограммыToolStripMenuItem;
         private System.Windows.Forms.ToolStripMenuItem пускToolStripMenuItem;
         private System.Windows.Forms.ToolStripMenuItem справкаToolStripMenuItem;
         private System.Windows.Forms.ToolStripMenuItem вызовСправкиToolStripMenuItem;
@@ -650,7 +556,6 @@
         private System.Windows.Forms.DataGridViewTextBoxColumn Column2;
         private System.Windows.Forms.DataGridViewTextBoxColumn Column3;
         private System.Windows.Forms.DataGridViewTextBoxColumn Column4;
-        private System.Windows.Forms.TabPage tabPage2;
     }
 }
 

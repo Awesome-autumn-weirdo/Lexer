@@ -679,6 +679,5 @@ namespace Lexer
             пускToolStripMenuItem_Click(sender, e);
         }
 
-
     }
 }
