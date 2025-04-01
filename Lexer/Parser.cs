@@ -32,6 +32,7 @@ namespace Lexer
             return errors;
         }
 
+
         private void ParseTypeDeclaration()
         {
             if (!MatchKeyword("type"))
