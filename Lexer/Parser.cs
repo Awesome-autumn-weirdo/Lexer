@@ -54,24 +54,10 @@ namespace Lexer
 
             SkipWhitespace();
 
-            // Если "record" отсутствует, пропускаем до следующего "type"
-            if (!PeekKeyword("record"))
-            {
-                AddError("Ожидалось ключевое слово 'record'");
-                SkipToKeyword(new string[] { "type" });
-                return;
-            }
-
-            ParseRecord();
-        }
-
-
-        private void ParseRecord()
-        {
             if (!MatchKeyword("record"))
             {
                 AddError("Ожидалось ключевое слово 'record'");
-                SkipToKeyword(new string[] { "end", "type" }); // Ищем следующий блок
+                SkipToKeyword(new string[] { "type" });
                 return;
             }
 
@@ -81,7 +67,7 @@ namespace Lexer
             if (!MatchKeyword("end"))
             {
                 AddError("Ожидалось ключевое слово 'end'");
-                SkipToKeyword(new string[] { "type" }); // Ищем следующий тип
+                SkipToKeyword(new string[] { "type" });
                 return;
             }
 
@@ -90,13 +76,12 @@ namespace Lexer
             if (!MatchChar(';'))
             {
                 AddError("Ожидалось ';' после 'end'");
-                SkipToKeyword(new string[] { "type" });
             }
         }
 
         private void SkipToKeyword(string[] keywords)
         {
-            int startPos = position; // Запоминаем начальную позицию
+            int startPos = position;
             while (position < input.Length)
             {
                 foreach (var keyword in keywords)
@@ -105,15 +90,13 @@ namespace Lexer
                 }
                 position++;
 
-                // Если прошло 50 символов и ничего не нашли — выходим, чтобы избежать зависания
-                if (position - startPos > 50)
+                if (position - startPos > 1000)
                 {
                     AddError("Не удалось найти ожидаемое ключевое слово");
                     return;
                 }
             }
         }
-
 
         private void ParseFields()
         {
@@ -164,7 +147,6 @@ namespace Lexer
             }
         }
 
-
         private void ParseType()
         {
             string[] validTypes = { "integer", "real", "string", "boolean", "char" };
@@ -194,6 +176,7 @@ namespace Lexer
                 return;
             }
 
+            position++;
             while (position < input.Length && (char.IsLetterOrDigit(input[position]) || input[position] == '_'))
             {
                 position++;
@@ -208,15 +191,13 @@ namespace Lexer
             }
         }
 
-        private void SkipToNextType()
+        private void SkipWhitespace()
         {
-            while (position < input.Length)
+            while (position < input.Length && char.IsWhiteSpace(input[position]))
             {
-                if (PeekKeyword("type")) return;
                 position++;
             }
         }
-
 
         private bool PeekKeyword(string keyword)
         {
@@ -229,7 +210,6 @@ namespace Lexer
                     return false;
             }
 
-            // Убедимся, что после ключевого слова идет разделитель
             if (position + keyword.Length < input.Length)
             {
                 char nextChar = input[position + keyword.Length];
@@ -260,18 +240,9 @@ namespace Lexer
             return false;
         }
 
-        private void SkipWhitespace()
-        {
-            while (position < input.Length && char.IsWhiteSpace(input[position]))
-            {
-                position++;
-            }
-        }
-
         private void AddError(string message)
         {
             errors.Add(message);
         }
-
     }
 }

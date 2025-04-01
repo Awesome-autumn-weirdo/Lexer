@@ -607,31 +607,13 @@ namespace Lexer
                     {
                         foreach (var error in errors)
                         {
-                            // Извлекаем позицию из текста ошибки
-                            int pos = ExtractPosition(error);
-                            int line = 1, linePos = 1, currentPos = 0;
-
-                            // Определяем номер строки и позицию в строке
-                            for (int i = 0; i < inputText.Length && currentPos < pos; i++)
-                            {
-                                if (inputText[i] == '\n')
-                                {
-                                    line++;
-                                    linePos = 1;
-                                }
-                                else
-                                {
-                                    linePos++;
-                                }
-                                currentPos++;
-                            }
-
+                            // Добавляем ошибку без информации о позиции
                             dataGridView1.Rows.Add(
                                 "Ошибка",
                                 error,
                                 "", // Доп. информация
-                                line.ToString(),
-                                linePos.ToString()
+                                "", // Строка (будет заполнено отдельно)
+                                ""  // Позиция в строке (будет заполнено отдельно)
                             );
                         }
 
@@ -645,24 +627,6 @@ namespace Lexer
                 MessageBox.Show($"Ошибка при анализе: {ex.Message}", "Ошибка",
                                 MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
-        }
-
-        private int ExtractPosition(string errorMessage)
-        {
-            int posStart = errorMessage.LastIndexOf("(позиция ");
-            if (posStart == -1) return 0; // Если позиции нет, считаем 0
-
-            posStart += 9; // Длина строки "(позиция "
-            int posEnd = errorMessage.IndexOf(")", posStart);
-            if (posEnd == -1) return 0;
-
-            string posStr = errorMessage.Substring(posStart, posEnd - posStart);
-            if (int.TryParse(posStr, out int position))
-            {
-                return position;
-            }
-
-            return 0; // Если не получилось извлечь позицию
         }
 
         private void toolStripButton9_Click(object sender, EventArgs e)
