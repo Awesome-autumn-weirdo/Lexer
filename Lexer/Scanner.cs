@@ -49,13 +49,6 @@ namespace Lexer
                         continue;
 
                     default:
-                        // Проверка на русские буквы (недопустимые символы)
-                        if ((currentChar >= 'А' && currentChar <= 'я') || currentChar == 'Ё' || currentChar == 'ё')
-                        {
-                            AddTokenToDataGridView(errorsDataGridView, currentChar.ToString(), "Недопустимый символ", lineNumber, positionInLine, positionInLine + 1);
-                            HighlightError(editorRichTextBox, globalPosition, 1);
-                            return false;
-                        }
 
                         if (IsOperator(currentChar))
                         {
@@ -68,10 +61,12 @@ namespace Lexer
                             continue;
                         }
 
-                        if (char.IsLetter(currentChar))
+                        if (currentChar >= 'A' && currentChar <= 'Z' || currentChar >= 'a' && currentChar <= 'z')
                         {
                             int end = globalPosition;
-                            while (end < text.Length && (char.IsLetterOrDigit(text[end]) || text[end] == '_'))
+                            while (end < text.Length &&
+                                   ((text[end] >= 'A' && text[end] <= 'Z') || (text[end] >= 'a' && text[end] <= 'z') ||
+                                    char.IsDigit(text[end]) || text[end] == '_'))
                             {
                                 end++;
                             }

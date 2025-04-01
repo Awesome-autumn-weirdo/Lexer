@@ -20,6 +20,8 @@ namespace Lexer
             InitializeComponent();
             InitializeDataGridViewColumns(dataGridView1);
 
+            this.FormClosing += Form1_FormClosing;
+
             CreateNewTab(null, "Новый документ", "type Point = record\r\n    x, y: real\r\nend;\r\n\r\ntype Person = record\r\n    name: string;\r\n    age: integer\r\nend;");
         }
 
@@ -75,43 +77,182 @@ namespace Lexer
 
         private void Form1_FormClosing(object sender, FormClosingEventArgs e)
         {
-            // Перебираем все вкладки в TabControl
-            for (int i = tabControl1.TabCount - 1; i >= 0; i--)
+            foreach (TabPage tabPage in tabControl1.TabPages)
             {
-                TabPage tabPage = tabControl1.TabPages[i];
-                SplitContainer splitContainer = tabPage.Controls[0] as SplitContainer;
-                RichTextBox richTextBox1 = splitContainer.Panel1.Controls[0] as RichTextBox; // Верхний RichTextBox
+                var splitContainer = tabPage.Controls.OfType<SplitContainer>().FirstOrDefault();
+                if (splitContainer == null) continue;
 
-                // Проверяем, есть ли изменения
-                if (richTextBox1.Modified)
+                var richTextBox = splitContainer.Panel2.Controls.OfType<RichTextBox>().FirstOrDefault();
+                if (richTextBox == null) continue;
+
+                if (richTextBox.Modified)
                 {
-                    // Спрашиваем пользователя, хочет ли он сохранить изменения
-                    DialogResult result = MessageBox.Show("Сохранить изменения в " + tabPage.Text + "?",
+                    DialogResult result = MessageBox.Show($"Сохранить изменения в {tabPage.Text}?",
                                                           "Предупреждение", MessageBoxButtons.YesNoCancel,
                                                           MessageBoxIcon.Warning);
 
                     if (result == DialogResult.Yes)
                     {
-                        // Сохранение файла
                         try
                         {
-                            сохранитьToolStripMenuItem_Click(sender, e);
+                            // Сохраняем текущую вкладку
+                            SaveTab(tabPage);
                         }
                         catch (Exception ex)
                         {
-                            MessageBox.Show("Ошибка при сохранении файла: " + ex.Message, "Ошибка",
-                                            MessageBoxButtons.OK, MessageBoxIcon.Error);
-                            e.Cancel = true; // Отменяем закрытие при ошибке
+                            MessageBox.Show($"Ошибка при сохранении файла: {ex.Message}",
+                                            "Ошибка", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                            e.Cancel = true;
                             return;
                         }
                     }
                     else if (result == DialogResult.Cancel)
                     {
-                        e.Cancel = true; // Отменяем закрытие формы
+                        e.Cancel = true;
                         return;
                     }
                 }
             }
+        }
+
+        // Метод для сохранения конкретной вкладки
+        private void SaveTab(TabPage tabPage)
+        {
+            var splitContainer = tabPage.Controls.OfType<SplitContainer>().FirstOrDefault();
+            if (splitContainer == null) return;
+
+            var richTextBox = splitContainer.Panel2.Controls.OfType<RichTextBox>().FirstOrDefault();
+            if (richTextBox == null) return;
+
+            string filePath = richTextBox.Tag as string;
+
+            if (!string.IsNullOrEmpty(filePath))
+            {
+                File.WriteAllText(filePath, richTextBox.Text);
+                richTextBox.Modified = false;
+            }
+            else
+            {
+                сохранитьКакToolStripMenuItem_Click(null, null);
+            }
+        }
+
+        private void сохранитьToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            Save();
+        }
+
+        private void toolStripButton3_Click(object sender, EventArgs e)
+        {
+            Save();
+        }
+
+        public void Save()
+        {
+            if (tabControl1.SelectedTab == null) return;
+
+            // Получаем текущий редактор
+            var splitContainer = tabControl1.SelectedTab.Controls.OfType<SplitContainer>().FirstOrDefault();
+            if (splitContainer == null) return;
+
+            var richTextBox = splitContainer.Panel2.Controls.OfType<RichTextBox>().FirstOrDefault();
+            if (richTextBox == null) return;
+
+            string filePath = richTextBox.Tag as string;
+
+            if (!string.IsNullOrEmpty(filePath))
+            {
+                try
+                {
+                    File.WriteAllText(filePath, richTextBox.Text);
+                    richTextBox.Modified = false;
+                    MessageBox.Show("Файл сохранён!", "Успех", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                }
+                catch (Exception ex)
+                {
+                    MessageBox.Show("Ошибка при сохранении файла: " + ex.Message,
+                                   "Ошибка", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                }
+            }
+            else
+            {
+                сохранитьКакToolStripMenuItem_Click(null, null);
+            }
+        }
+
+        private void сохранитьКакToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            if (tabControl1.SelectedTab == null) return;
+
+            var splitContainer = tabControl1.SelectedTab.Controls.OfType<SplitContainer>().FirstOrDefault();
+            if (splitContainer == null) return;
+
+            var richTextBox = splitContainer.Panel2.Controls.OfType<RichTextBox>().FirstOrDefault();
+            if (richTextBox == null) return;
+
+            SaveFileDialog saveFileDialog = new SaveFileDialog();
+            saveFileDialog.Filter = "Текстовые файлы (*.txt)|*.txt|Все файлы (*.*)|*.*";
+            saveFileDialog.Title = "Сохранить файл как";
+
+            if (saveFileDialog.ShowDialog() == DialogResult.OK)
+            {
+                try
+                {
+                    File.WriteAllText(saveFileDialog.FileName, richTextBox.Text);
+                    richTextBox.Tag = saveFileDialog.FileName;
+                    tabControl1.SelectedTab.Text = Path.GetFileName(saveFileDialog.FileName);
+                    richTextBox.Modified = false;
+                    MessageBox.Show("Файл успешно сохранён!", "Успех", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                }
+                catch (Exception ex)
+                {
+                    MessageBox.Show("Ошибка при сохранении файла: " + ex.Message,
+                                  "Ошибка", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                }
+            }
+        }
+
+
+        private void выходToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            // Перебираем все вкладки в TabControl
+            foreach (TabPage tabPage in tabControl1.TabPages)
+            {
+                var splitContainer = tabPage.Controls.OfType<SplitContainer>().FirstOrDefault();
+                if (splitContainer == null) continue;
+
+                var richTextBox = splitContainer.Panel2.Controls.OfType<RichTextBox>().FirstOrDefault();
+                if (richTextBox == null) continue;
+
+                if (richTextBox.Modified)
+                {
+                    DialogResult result = MessageBox.Show($"Сохранить изменения в {tabPage.Text}?",
+                                                          "Предупреждение",
+                                                          MessageBoxButtons.YesNoCancel,
+                                                          MessageBoxIcon.Warning);
+
+                    if (result == DialogResult.Yes)
+                    {
+                        try
+                        {
+                            SaveTab(tabPage); // Сохраняем вкладку
+                        }
+                        catch (Exception ex)
+                        {
+                            MessageBox.Show($"Ошибка при сохранении файла: {ex.Message}",
+                                            "Ошибка", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                            return; // Прерываем выход при ошибке
+                        }
+                    }
+                    else if (result == DialogResult.Cancel)
+                    {
+                        return; // Прерываем выход, если пользователь нажал "Отмена"
+                    }
+                }
+            }
+
+            // Закрываем приложение
+            Application.Exit();
         }
 
         private void создатьToolStripMenuItem_Click(object sender, EventArgs e)
@@ -229,130 +370,6 @@ namespace Lexer
             }
         }
 
-        private void сохранитьToolStripMenuItem_Click(object sender, EventArgs e)
-        {
-            Save();
-        }
-
-
-        public void Save()
-        {
-            if (tabControl1.SelectedTab == null) return;
-
-            // Получаем текущий редактор
-            var splitContainer = tabControl1.SelectedTab.Controls.OfType<SplitContainer>().FirstOrDefault();
-            if (splitContainer == null) return;
-
-            var richTextBox = splitContainer.Panel2.Controls.OfType<RichTextBox>().FirstOrDefault();
-            if (richTextBox == null) return;
-
-            string filePath = richTextBox.Tag as string;
-
-            if (!string.IsNullOrEmpty(filePath))
-            {
-                try
-                {
-                    File.WriteAllText(filePath, richTextBox.Text);
-                    richTextBox.Modified = false;
-                    MessageBox.Show("Файл сохранён!", "Успех", MessageBoxButtons.OK, MessageBoxIcon.Information);
-                }
-                catch (Exception ex)
-                {
-                    MessageBox.Show("Ошибка при сохранении файла: " + ex.Message,
-                                   "Ошибка", MessageBoxButtons.OK, MessageBoxIcon.Error);
-                }
-            }
-            else
-            {
-                сохранитьКакToolStripMenuItem_Click(null, null);
-            }
-        }
-
-        private void сохранитьКакToolStripMenuItem_Click(object sender, EventArgs e)
-        {
-            if (tabControl1.SelectedTab == null) return;
-
-            var splitContainer = tabControl1.SelectedTab.Controls.OfType<SplitContainer>().FirstOrDefault();
-            if (splitContainer == null) return;
-
-            var richTextBox = splitContainer.Panel2.Controls.OfType<RichTextBox>().FirstOrDefault();
-            if (richTextBox == null) return;
-
-            SaveFileDialog saveFileDialog = new SaveFileDialog();
-            saveFileDialog.Filter = "Текстовые файлы (*.txt)|*.txt|Все файлы (*.*)|*.*";
-            saveFileDialog.Title = "Сохранить файл как";
-
-            if (saveFileDialog.ShowDialog() == DialogResult.OK)
-            {
-                try
-                {
-                    File.WriteAllText(saveFileDialog.FileName, richTextBox.Text);
-                    richTextBox.Tag = saveFileDialog.FileName;
-                    tabControl1.SelectedTab.Text = Path.GetFileName(saveFileDialog.FileName);
-                    richTextBox.Modified = false;
-                    MessageBox.Show("Файл успешно сохранён!", "Успех", MessageBoxButtons.OK, MessageBoxIcon.Information);
-                }
-                catch (Exception ex)
-                {
-                    MessageBox.Show("Ошибка при сохранении файла: " + ex.Message,
-                                  "Ошибка", MessageBoxButtons.OK, MessageBoxIcon.Error);
-                }
-            }
-        }
-
-        private void выходToolStripMenuItem_Click(object sender, EventArgs e)
-        {
-            // Перебираем все вкладки в TabControl
-            for (int i = tabControl1.TabCount - 1; i >= 0; i--)
-            {
-                TabPage tabPage = tabControl1.TabPages[i];
-
-                // Получаем SplitContainer из вкладки
-                var splitContainer = tabPage.Controls.OfType<SplitContainer>().FirstOrDefault();
-                if (splitContainer == null) continue;
-
-                // Получаем RichTextBox из Panel2 SplitContainer
-                var richTextBox = splitContainer.Panel2.Controls.OfType<RichTextBox>().FirstOrDefault();
-                if (richTextBox == null) continue;
-
-                // Проверяем, есть ли изменения
-                if (richTextBox.Modified)
-                {
-                    // Спрашиваем пользователя, хочет ли он сохранить изменения
-                    DialogResult result = MessageBox.Show($"Сохранить изменения в {tabPage.Text}?",
-                        "Предупреждение",
-                        MessageBoxButtons.YesNoCancel,
-                        MessageBoxIcon.Warning);
-
-                    if (result == DialogResult.Yes)
-                    {
-                        // Сохранение файла
-                        try
-                        {
-                            // Сохраняем текущую вкладку
-                            tabControl1.SelectedTab = tabPage;
-                            сохранитьToolStripMenuItem_Click(sender, e);
-                        }
-                        catch (Exception ex)
-                        {
-                            MessageBox.Show($"Ошибка при сохранении файла: {ex.Message}",
-                                "Ошибка",
-                                MessageBoxButtons.OK,
-                                MessageBoxIcon.Error);
-                            return; // Выход из метода при ошибке
-                        }
-                    }
-                    else if (result == DialogResult.Cancel)
-                    {
-                        return; // Прерываем выход
-                    }
-                }
-            }
-
-            // Закрываем приложение
-            Application.Exit();
-        }
-
         private void toolStripButton1_Click(object sender, EventArgs e)
         {
             создатьToolStripMenuItem_Click(sender, e);
@@ -361,11 +378,6 @@ namespace Lexer
         private void toolStripButton2_Click(object sender, EventArgs e)
         {
             открытьToolStripMenuItem_Click(sender, e);
-        }
-
-        private void toolStripButton3_Click(object sender, EventArgs e)
-        {
-            Save();
         }
 
         private void отменитьToolStripMenuItem_Click(object sender, EventArgs e)
@@ -578,94 +590,94 @@ namespace Lexer
             оПрограммеToolStripMenuItem_Click(sender, e);
         }
 
-        private void Analyze()
-        {
-            if (tabControl1.SelectedTab == null || dataGridView1 == null) return;
-
-            var splitContainer = tabControl1.SelectedTab.Controls.OfType<SplitContainer>().FirstOrDefault();
-            if (splitContainer == null) return;
-
-            var editorRichTextBox = splitContainer.Panel2.Controls.OfType<RichTextBox>().FirstOrDefault();
-            if (editorRichTextBox == null) return;
-
-            try
-            {
-                string inputText = editorRichTextBox.Text;
-                var parser = new RecordParser();
-                var errors = parser.ParseRecord(inputText);
-
-                dataGridView1.Invoke((MethodInvoker)delegate {
-                    dataGridView1.Rows.Clear();
-
-                    if (errors.Count == 0)
-                    {
-                        dataGridView1.Rows.Add("0", "Успех", "Синтаксис правильный", "1", "1");
-                        MessageBox.Show("Анализ завершен успешно. Ошибок не найдено.", "Результат анализа",
-                                        MessageBoxButtons.OK, MessageBoxIcon.Information);
-                    }
-                    else
-                    {
-                        foreach (var error in errors)
-                        {
-                            // Добавляем ошибку без информации о позиции
-                            dataGridView1.Rows.Add(
-                                "Ошибка",
-                                error,
-                                "", // Доп. информация
-                                "", // Строка (будет заполнено отдельно)
-                                ""  // Позиция в строке (будет заполнено отдельно)
-                            );
-                        }
-
-                        MessageBox.Show($"Найдено {errors.Count} ошибок.", "Результат анализа",
-                                        MessageBoxButtons.OK, MessageBoxIcon.Warning);
-                    }
-                });
-            }
-            catch (Exception ex)
-            {
-                MessageBox.Show($"Ошибка при анализе: {ex.Message}", "Ошибка",
-                                MessageBoxButtons.OK, MessageBoxIcon.Error);
-            }
-        }
-
-        private void toolStripButton9_Click(object sender, EventArgs e)
-        {
-            Analyze();
-        }
-
-        private void пускToolStripMenuItem_Click(object sender, EventArgs e)
-        {
-            Analyze();
-        }
-
-
-
-        //private void пускToolStripMenuItem_Click(object sender, EventArgs e)
+        //private void Analyze()
         //{
-        //    if (tabControl1.SelectedTab == null) return;
+        //    if (tabControl1.SelectedTab == null || dataGridView1 == null) return;
 
-        //    // Получаем SplitContainer из текущей вкладки
         //    var splitContainer = tabControl1.SelectedTab.Controls.OfType<SplitContainer>().FirstOrDefault();
         //    if (splitContainer == null) return;
 
-        //    // Получаем RichTextBox из Panel2 SplitContainer
         //    var editorRichTextBox = splitContainer.Panel2.Controls.OfType<RichTextBox>().FirstOrDefault();
         //    if (editorRichTextBox == null) return;
 
-        //    // Используем существующий dataGridView1, который должен быть в splitcontainer1.Panel2
-        //    if (dataGridView1 == null) return;
+        //    try
+        //    {
+        //        string inputText = editorRichTextBox.Text;
+        //        var parser = new RecordParser();
+        //        var errors = parser.ParseRecord(inputText);
 
-        //    // Анализируем текст
-        //    Scanner scanner = new Scanner();
-        //    dataGridView1.Rows.Clear();
-        //    scanner.Analyze(editorRichTextBox.Text, dataGridView1, editorRichTextBox);
+        //        dataGridView1.Invoke((MethodInvoker)delegate {
+        //            dataGridView1.Rows.Clear();
+
+        //            if (errors.Count == 0)
+        //            {
+        //                dataGridView1.Rows.Add("0", "Успех", "Синтаксис правильный", "1", "1");
+        //                MessageBox.Show("Анализ завершен успешно. Ошибок не найдено.", "Результат анализа",
+        //                                MessageBoxButtons.OK, MessageBoxIcon.Information);
+        //            }
+        //            else
+        //            {
+        //                foreach (var error in errors)
+        //                {
+        //                    // Добавляем ошибку без информации о позиции
+        //                    dataGridView1.Rows.Add(
+        //                        "Ошибка",
+        //                        error,
+        //                        "", // Доп. информация
+        //                        "", // Строка (будет заполнено отдельно)
+        //                        ""  // Позиция в строке (будет заполнено отдельно)
+        //                    );
+        //                }
+
+        //                MessageBox.Show($"Найдено {errors.Count} ошибок.", "Результат анализа",
+        //                                MessageBoxButtons.OK, MessageBoxIcon.Warning);
+        //            }
+        //        });
+        //    }
+        //    catch (Exception ex)
+        //    {
+        //        MessageBox.Show($"Ошибка при анализе: {ex.Message}", "Ошибка",
+        //                        MessageBoxButtons.OK, MessageBoxIcon.Error);
+        //    }
         //}
 
         //private void toolStripButton9_Click(object sender, EventArgs e)
         //{
-        //    пускToolStripMenuItem_Click(sender, e);
+        //    Analyze();
         //}
+
+        //private void пускToolStripMenuItem_Click(object sender, EventArgs e)
+        //{
+        //    Analyze();
+        //}
+
+
+
+        private void пускToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            if (tabControl1.SelectedTab == null) return;
+
+            // Получаем SplitContainer из текущей вкладки
+            var splitContainer = tabControl1.SelectedTab.Controls.OfType<SplitContainer>().FirstOrDefault();
+            if (splitContainer == null) return;
+
+            // Получаем RichTextBox из Panel2 SplitContainer
+            var editorRichTextBox = splitContainer.Panel2.Controls.OfType<RichTextBox>().FirstOrDefault();
+            if (editorRichTextBox == null) return;
+
+            // Используем существующий dataGridView1, который должен быть в splitcontainer1.Panel2
+            if (dataGridView1 == null) return;
+
+            // Анализируем текст
+            Scanner scanner = new Scanner();
+            dataGridView1.Rows.Clear();
+            scanner.Analyze(editorRichTextBox.Text, dataGridView1, editorRichTextBox);
+        }
+
+        private void toolStripButton9_Click(object sender, EventArgs e)
+        {
+            пускToolStripMenuItem_Click(sender, e);
+        }
 
 
     }
