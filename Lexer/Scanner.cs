@@ -127,7 +127,7 @@ namespace Lexer
 
         private void AddTokenToDataGridView(DataGridView dataGridView, string token, string tokenType, int lineNumber, int startPos, int endPos)
         {
-            string positionRange = $"с {startPos} по {endPos - 1}";
+            string positionRange = $"с {startPos} по {endPos - 1} символ";
             dataGridView.Rows.Add(GetTokenCode(token, tokenType), tokenType, token, lineNumber, positionRange);
         }
 

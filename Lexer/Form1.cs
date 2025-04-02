@@ -14,69 +14,241 @@ namespace Lexer
 {
     public partial class Form1 : Form
     {
+        private float currentEditorFontSize
+        {
+            get => Properties.Settings.Default.EditorFontSize;
+            set => Properties.Settings.Default.EditorFontSize = value;
+        }
+
+        private float currentOutputFontSize
+        {
+            get => Properties.Settings.Default.OutputFontSize;
+            set => Properties.Settings.Default.OutputFontSize = value;
+        }
 
         public Form1()
         {
+
+            Properties.Settings.Default.Reload();
             InitializeComponent();
             InitializeDataGridViewColumns(dataGridView1);
+            dataGridView1.Font = new Font("Bookman Old Style", Properties.Settings.Default.OutputFontSize);
 
             this.FormClosing += Form1_FormClosing;
 
             CreateNewTab(null, "Новый документ", "type Point = record\r\n    x, y: real\r\nend;\r\n\r\ntype Person = record\r\n    name: string;\r\n    age: integer\r\nend;");
         }
 
+        private void размерШрифтаToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            // Создаем форму для настройки размеров шрифта
+            Form fontSizeForm = new Form()
+            {
+                Text = "Размер шрифта",
+                Width = 300,
+                Height = 200,
+                FormBorderStyle = FormBorderStyle.FixedDialog,
+                StartPosition = FormStartPosition.CenterParent,
+                BackColor = Color.Honeydew // Задаем цвет фона формы
+            };
+
+            // Создаем элементы управления
+            Label editorLabel = new Label()
+            {
+                Text = "Редактор:",
+                Left = 20,
+                Top = 20,
+                Width = 100,
+                Font = new Font("Bookman Old Style", 10),
+                BackColor = Color.Honeydew // Устанавливаем цвет фона
+            };
+
+            NumericUpDown editorSize = new NumericUpDown()
+            {
+                Left = 170,
+                Top = 20,
+                Width = 60,
+                Minimum = 6,
+                Maximum = 36,
+                Value = (decimal)currentEditorFontSize,
+                Font = new Font("Bookman Old Style", 10),
+                BackColor = Color.Honeydew
+            };
+
+            Label outputLabel = new Label()
+            {
+                Text = "Результаты:",
+                Left = 20,
+                Top = 60,
+                Width = 150,
+                Font = new Font("Bookman Old Style", 10),
+                BackColor = Color.Honeydew
+            };
+
+            NumericUpDown outputSize = new NumericUpDown()
+            {
+                Left = 170,
+                Top = 60,
+                Width = 60,
+                Minimum = 6,
+                Maximum = 36,
+                Value = (decimal)currentOutputFontSize,
+                Font = new Font("Bookman Old Style", 10),
+                BackColor = Color.Honeydew
+            };
+
+            System.Windows.Forms.Button okButton = new System.Windows.Forms.Button()
+            {
+                Text = "Применить",
+                Left = 100,
+                Top = 100,
+                Width = 125,
+                Height = 35,
+                DialogResult = DialogResult.OK,
+                Font = new Font("Bookman Old Style", 10),
+                BackColor = Color.Linen
+            };
+
+            // Добавляем элементы на форму
+            fontSizeForm.Controls.Add(editorLabel);
+            fontSizeForm.Controls.Add(editorSize);
+            fontSizeForm.Controls.Add(outputLabel);
+            fontSizeForm.Controls.Add(outputSize);
+            fontSizeForm.Controls.Add(okButton);
+            fontSizeForm.AcceptButton = okButton;
+
+            // Показываем форму как диалоговое окно
+            if (fontSizeForm.ShowDialog() == DialogResult.OK)
+            {
+                // Применяем новые размеры шрифтов
+                currentEditorFontSize = (float)editorSize.Value;
+                currentOutputFontSize = (float)outputSize.Value;
+
+                // Сохраняем настройки сразу после изменения
+                Properties.Settings.Default.Save();
+
+                UpdateEditorFontSize();
+                UpdateOutputFontSize();
+            }
+        }
+
+
+        // Обновляем шрифт во всех редакторах
+        private void UpdateEditorFontSize()
+        {
+            foreach (TabPage tabPage in tabControl1.TabPages)
+            {
+                var splitContainer = tabPage.Controls.OfType<SplitContainer>().FirstOrDefault();
+                if (splitContainer == null) continue;
+
+                var richTextBox = splitContainer.Panel2.Controls.OfType<RichTextBox>().FirstOrDefault();
+                if (richTextBox != null)
+                {
+                    richTextBox.Font = new Font(richTextBox.Font.FontFamily, currentEditorFontSize);
+
+                    // Обновляем панель нумерации строк
+                    var lineNumberPanel = splitContainer.Panel1.Controls.OfType<Panel>().FirstOrDefault();
+                    if (lineNumberPanel != null)
+                    {
+                        lineNumberPanel.Invalidate();
+                    }
+                }
+            }
+        }
+
+
+        private void UpdateOutputFontSize()
+        {
+            if (dataGridView1 != null)
+            {
+                // Создаем новый шрифт с текущими настройками
+                Font newFont = new Font("Bookman Old Style", currentOutputFontSize);
+
+                // Обновляем основной шрифт
+                dataGridView1.Font = newFont;
+
+                // Обновляем шрифт в ячейках
+                foreach (DataGridViewColumn column in dataGridView1.Columns)
+                {
+                    column.DefaultCellStyle.Font = newFont;
+                }
+
+                // Обновляем шрифт заголовков
+                dataGridView1.ColumnHeadersDefaultCellStyle.Font = newFont;
+
+                // Обновляем высоту строк
+                dataGridView1.AutoResizeRows(DataGridViewAutoSizeRowsMode.AllCellsExceptHeaders);
+            }
+        }
+
         private void InitializeDataGridViewColumns(DataGridView dataGridView1)
         {
             if (dataGridView1 != null)
             {
+                // Сохраняем текущие настройки шрифта
+                Font currentFont = new Font("Bookman Old Style", currentOutputFontSize);
+                DataGridViewCellStyle cellStyle = new DataGridViewCellStyle { Font = currentFont };
+
                 // Очищаем старые столбцы перед добавлением новых
                 dataGridView1.Columns.Clear();
 
                 // Код лексемы
-                this.dataGridView1.Columns.Add(new System.Windows.Forms.DataGridViewTextBoxColumn
+                dataGridView1.Columns.Add(new DataGridViewTextBoxColumn
                 {
                     Name = "TokenCode",
                     HeaderText = "Код лексемы",
-                    Width = 90
+                    Width = 90,
+                    DefaultCellStyle = cellStyle
                 });
 
-                // Тип лексемы (ключевое слово, идентификатор, оператор и т. д.)
-                this.dataGridView1.Columns.Add(new System.Windows.Forms.DataGridViewTextBoxColumn
+                // Тип лексемы
+                dataGridView1.Columns.Add(new DataGridViewTextBoxColumn
                 {
                     Name = "TokenType",
                     HeaderText = "Тип лексемы",
-                    Width = 325
+                    Width = 225,
+                    DefaultCellStyle = cellStyle
                 });
 
                 // Сама лексема
-                this.dataGridView1.Columns.Add(new System.Windows.Forms.DataGridViewTextBoxColumn
+                dataGridView1.Columns.Add(new DataGridViewTextBoxColumn
                 {
                     Name = "TokenValue",
                     HeaderText = "Лексема",
-                    AutoSizeMode = System.Windows.Forms.DataGridViewAutoSizeColumnMode.Fill,
-                    Width = 70
+                    AutoSizeMode = DataGridViewAutoSizeColumnMode.Fill,
+                    Width = 70,
+                    DefaultCellStyle = cellStyle
                 });
 
                 // Номер строки
-                this.dataGridView1.Columns.Add(new System.Windows.Forms.DataGridViewTextBoxColumn
+                dataGridView1.Columns.Add(new DataGridViewTextBoxColumn
                 {
                     Name = "LineNumber",
                     HeaderText = "Номер строки",
-                    Width = 70
+                    Width = 70,
+                    DefaultCellStyle = cellStyle
                 });
 
                 // Позиция в строке
-                this.dataGridView1.Columns.Add(new System.Windows.Forms.DataGridViewTextBoxColumn
+                dataGridView1.Columns.Add(new DataGridViewTextBoxColumn
                 {
                     Name = "Position",
                     HeaderText = "Позиция",
-                    Width = 70
+                    Width = 150,
+                    DefaultCellStyle = cellStyle
                 });
+
+                // Устанавливаем шрифт для заголовков
+                dataGridView1.ColumnHeadersDefaultCellStyle.Font = currentFont;
+                dataGridView1.Font = currentFont;
             }
         }
 
         private void Form1_FormClosing(object sender, FormClosingEventArgs e)
         {
+            // Сохраняем настройки при закрытии формы
+            Properties.Settings.Default.Save();
+
             foreach (TabPage tabPage in tabControl1.TabPages)
             {
                 var splitContainer = tabPage.Controls.OfType<SplitContainer>().FirstOrDefault();
@@ -310,7 +482,8 @@ namespace Lexer
                 Text = fileContent,
                 Tag = filePath,
                 Name = "editorRichTextBox",
-                BorderStyle = BorderStyle.None
+                BorderStyle = BorderStyle.None,
+                Font = new Font("Courier New", currentEditorFontSize)
             };
 
             // Инициализация нумерации строк
@@ -326,6 +499,7 @@ namespace Lexer
             // Добавляем вкладку в tabControl1, который находится в splitcontainer1.Panel1
             tabControl1.TabPages.Add(newTab);
             tabControl1.SelectedTab = newTab;
+
         }
 
         // Методы для нумерации строк остаются без изменений
@@ -604,7 +778,7 @@ namespace Lexer
 
             // Используем существующий dataGridView1, который должен быть в splitcontainer1.Panel2
             if (dataGridView1 == null) return;
-
+            UpdateOutputFontSize();
             // Анализируем текст
             Scanner scanner = new Scanner();
             dataGridView1.Rows.Clear();
