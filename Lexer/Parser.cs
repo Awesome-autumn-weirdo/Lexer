@@ -137,7 +137,6 @@ namespace Lexer
 
         private void State5()
         {
-            // Обработка списка полей через запятую
             bool hasFields = false;
 
             do
@@ -157,7 +156,7 @@ namespace Lexer
                 SkipWhitespace();
                 if (MatchChar(','))
                 {
-                    continue; // Продолжаем собирать поля
+                    continue;
                 }
                 else if (MatchChar(':'))
                 {
@@ -172,7 +171,7 @@ namespace Lexer
                 }
             } while (position < text.Length);
 
-            if (state == 5) // Если не нашли ':'
+            if (state == 5)
             {
                 HandleError("Ожидается ':' после списка полей", "", position);
                 SkipToKeyword(new[] { "end" });
@@ -196,8 +195,7 @@ namespace Lexer
             }
             else
             {
-                // После типа данных не обязательно ';'
-                state = 7; // Переход в следующее состояние без ;
+                state = 7;
             }
         }
 
@@ -209,7 +207,7 @@ namespace Lexer
                 SkipWhitespace();
                 if (MatchChar(';'))
                 {
-                    state = 100; // Успешное завершение
+                    state = 100;
                 }
                 else
                 {
@@ -218,7 +216,6 @@ namespace Lexer
             }
             else
             {
-                // Возвращаемся к обработке полей
                 state = 5;
             }
         }
