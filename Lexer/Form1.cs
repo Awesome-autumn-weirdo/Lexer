@@ -590,69 +590,6 @@ namespace Lexer
             оПрограммеToolStripMenuItem_Click(sender, e);
         }
 
-        //private void Analyze()
-        //{
-        //    if (tabControl1.SelectedTab == null || dataGridView1 == null) return;
-
-        //    var splitContainer = tabControl1.SelectedTab.Controls.OfType<SplitContainer>().FirstOrDefault();
-        //    if (splitContainer == null) return;
-
-        //    var editorRichTextBox = splitContainer.Panel2.Controls.OfType<RichTextBox>().FirstOrDefault();
-        //    if (editorRichTextBox == null) return;
-
-        //    try
-        //    {
-        //        string inputText = editorRichTextBox.Text;
-        //        var parser = new RecordParser();
-        //        var errors = parser.ParseRecord(inputText);
-
-        //        dataGridView1.Invoke((MethodInvoker)delegate {
-        //            dataGridView1.Rows.Clear();
-
-        //            if (errors.Count == 0)
-        //            {
-        //                dataGridView1.Rows.Add("0", "Успех", "Синтаксис правильный", "1", "1");
-        //                MessageBox.Show("Анализ завершен успешно. Ошибок не найдено.", "Результат анализа",
-        //                                MessageBoxButtons.OK, MessageBoxIcon.Information);
-        //            }
-        //            else
-        //            {
-        //                foreach (var error in errors)
-        //                {
-        //                    // Добавляем ошибку без информации о позиции
-        //                    dataGridView1.Rows.Add(
-        //                        "Ошибка",
-        //                        error,
-        //                        "", // Доп. информация
-        //                        "", // Строка (будет заполнено отдельно)
-        //                        ""  // Позиция в строке (будет заполнено отдельно)
-        //                    );
-        //                }
-
-        //                MessageBox.Show($"Найдено {errors.Count} ошибок.", "Результат анализа",
-        //                                MessageBoxButtons.OK, MessageBoxIcon.Warning);
-        //            }
-        //        });
-        //    }
-        //    catch (Exception ex)
-        //    {
-        //        MessageBox.Show($"Ошибка при анализе: {ex.Message}", "Ошибка",
-        //                        MessageBoxButtons.OK, MessageBoxIcon.Error);
-        //    }
-        //}
-
-        //private void toolStripButton9_Click(object sender, EventArgs e)
-        //{
-        //    Analyze();
-        //}
-
-        //private void пускToolStripMenuItem_Click(object sender, EventArgs e)
-        //{
-        //    Analyze();
-        //}
-
-
-
         private void пускToolStripMenuItem_Click(object sender, EventArgs e)
         {
             if (tabControl1.SelectedTab == null) return;
