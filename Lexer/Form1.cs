@@ -26,17 +26,69 @@ namespace Lexer
             set => Properties.Settings.Default.OutputFontSize = value;
         }
 
+        private StatusStrip statusStrip;
+        private ToolStripStatusLabel statusLabel;
+        private Timer statusTimer;
+
         public Form1()
         {
+            InitializeComponent();
+
+            // Создаем строку состояния
+            statusStrip = new StatusStrip();
+            statusLabel = new ToolStripStatusLabel();
+
+            // Настройка внешнего вида
+            statusStrip.BackColor = Color.DarkSeaGreen;
+            statusLabel.Spring = true; // Растягиваем на всю ширину
+            statusLabel.TextAlign = ContentAlignment.MiddleLeft;
+
+            // Добавляем элементы
+            statusStrip.Items.Add(statusLabel);
+
+            // Добавляем строку состояния на форму
+            this.Controls.Add(statusStrip);
+            statusStrip.Dock = DockStyle.Bottom;
+            
+
+            // Таймер для обновления времени
+            statusTimer = new Timer();
+            statusTimer.Interval = 1000;
+            statusTimer.Tick += StatusTimer_Tick;
+            statusTimer.Start();
+
+            // Добавляем элемент для времени
+            var timeLabel = new ToolStripStatusLabel();
+            timeLabel.TextAlign = ContentAlignment.MiddleRight;
+            statusStrip.Items.Add(timeLabel);
 
             Properties.Settings.Default.Reload();
-            InitializeComponent();
             InitializeDataGridViewColumns(dataGridView1);
             dataGridView1.Font = new Font("Bookman Old Style", Properties.Settings.Default.OutputFontSize);
 
             this.FormClosing += Form1_FormClosing;
 
             CreateNewTab(null, "Новый документ", "type Point = record\r\n    x, y: real\r\nend;\r\n\r\ntype Person = record\r\n    name: string;\r\n    age: integer\r\nend;");
+        }
+
+        private void StatusTimer_Tick(object sender, EventArgs e)
+        {
+            if (statusStrip.Items.Count > 1)
+            {
+                statusStrip.Items[1].Text = DateTime.Now.ToString("HH:mm:ss");
+            }
+        }
+
+        public void SetStatus(string message)
+        {
+            statusLabel.Text = message;
+            statusStrip.Refresh();
+        }
+
+        public void ClearStatus()
+        {
+            statusLabel.Text = string.Empty;
+            statusStrip.Refresh();
         }
 
         private void размерШрифтаToolStripMenuItem_Click(object sender, EventArgs e)
@@ -311,7 +363,16 @@ namespace Lexer
 
         private void сохранитьToolStripMenuItem_Click(object sender, EventArgs e)
         {
-            Save();
+            SetStatus("Сохранение файла...");
+            try
+            {
+                Save();
+                SetStatus("Файл успешно сохранен");
+            }
+            catch (Exception ex)
+            {
+                SetStatus($"Ошибка сохранения: {ex.Message}");
+            }
         }
 
         private void toolStripButton3_Click(object sender, EventArgs e)
@@ -440,6 +501,36 @@ namespace Lexer
             CreateNewTab(filePath, fileName, fileContent);
         }
 
+        private void richTextBox_SelectionChanged(object sender, EventArgs e)
+        {
+            var richTextBox = sender as RichTextBox;
+            if (richTextBox != null)
+            {
+                int line = richTextBox.GetLineFromCharIndex(richTextBox.SelectionStart) + 1;
+                int column = richTextBox.SelectionStart - richTextBox.GetFirstCharIndexOfCurrentLine() + 1;
+                SetStatus($"Строка: {line}, Колонка: {column}");
+            }
+        }
+
+        private void tabControl1_SelectedIndexChanged(object sender, EventArgs e)
+        {
+            if (tabControl1.SelectedTab != null)
+            {
+                var splitContainer = tabControl1.SelectedTab.Controls.OfType<SplitContainer>().FirstOrDefault();
+                if (splitContainer != null)
+                {
+                    var richTextBox = splitContainer.Panel2.Controls.OfType<RichTextBox>().FirstOrDefault();
+                    if (richTextBox != null)
+                    {
+                        string filePath = richTextBox.Tag as string;
+                        string fileName = string.IsNullOrEmpty(filePath) ? "Новый документ" : Path.GetFileName(filePath);
+                        int lineCount = richTextBox.Lines.Length;
+                        SetStatus($"Файл: {fileName} | Строк: {lineCount}");
+                    }
+                }
+            }
+        }
+
         private void CreateNewTab(string filePath, string tabTitle, string fileContent)
         {
             // Создаём новую вкладку
@@ -500,6 +591,9 @@ namespace Lexer
             tabControl1.TabPages.Add(newTab);
             tabControl1.SelectedTab = newTab;
 
+            editorRichTextBox.SelectionChanged += richTextBox_SelectionChanged;
+            tabControl1.SelectedIndexChanged += tabControl1_SelectedIndexChanged;
+
         }
 
         // Методы для нумерации строк остаются без изменений
@@ -526,21 +620,32 @@ namespace Lexer
                 e.Graphics.DrawString((i + 1).ToString(), richTextBox.Font, Brushes.Black, new PointF(5, y));
             }
         }
-
-
         private void открытьToolStripMenuItem_Click(object sender, EventArgs e)
         {
-            OpenFileDialog openFileDialog = new OpenFileDialog();
-            openFileDialog.Filter = "Текстовые файлы (*.txt)|*.txt|Все файлы (*.*)|*.*";
-            openFileDialog.Title = "Открыть файл";
-            openFileDialog.Multiselect = true; // Разрешаем выбирать несколько файлов
-
-            if (openFileDialog.ShowDialog() == DialogResult.OK)
+            SetStatus("Открытие файла...");
+            try
             {
-                foreach (string filePath in openFileDialog.FileNames)
+                OpenFileDialog openFileDialog = new OpenFileDialog();
+                openFileDialog.Filter = "Текстовые файлы (*.txt)|*.txt|Все файлы (*.*)|*.*";
+                openFileDialog.Title = "Открыть файл";
+
+                if (openFileDialog.ShowDialog() == DialogResult.OK)
                 {
-                    OpenFileInNewTab(filePath);
+                    foreach (string filePath in openFileDialog.FileNames)
+                    {
+                        SetStatus($"Загрузка файла: {Path.GetFileName(filePath)}");
+                        OpenFileInNewTab(filePath);
+                    }
+                    SetStatus($"Загружено файлов: {openFileDialog.FileNames.Length}");
                 }
+                else
+                {
+                    SetStatus("Открытие файла отменено");
+                }
+            }
+            catch (Exception ex)
+            {
+                SetStatus($"Ошибка: {ex.Message}");
             }
         }
 
@@ -766,23 +871,32 @@ namespace Lexer
 
         private void пускToolStripMenuItem_Click(object sender, EventArgs e)
         {
-            if (tabControl1.SelectedTab == null) return;
+            SetStatus("Выполнение лексического анализа...");
+            try
+            {
+                if (tabControl1.SelectedTab == null) return;
 
-            // Получаем SplitContainer из текущей вкладки
-            var splitContainer = tabControl1.SelectedTab.Controls.OfType<SplitContainer>().FirstOrDefault();
-            if (splitContainer == null) return;
+                // Получаем SplitContainer из текущей вкладки
+                var splitContainer = tabControl1.SelectedTab.Controls.OfType<SplitContainer>().FirstOrDefault();
+                if (splitContainer == null) return;
 
-            // Получаем RichTextBox из Panel2 SplitContainer
-            var editorRichTextBox = splitContainer.Panel2.Controls.OfType<RichTextBox>().FirstOrDefault();
-            if (editorRichTextBox == null) return;
+                // Получаем RichTextBox из Panel2 SplitContainer
+                var editorRichTextBox = splitContainer.Panel2.Controls.OfType<RichTextBox>().FirstOrDefault();
+                if (editorRichTextBox == null) return;
 
-            // Используем существующий dataGridView1, который должен быть в splitcontainer1.Panel2
-            if (dataGridView1 == null) return;
-            UpdateOutputFontSize();
-            // Анализируем текст
-            Scanner scanner = new Scanner();
-            dataGridView1.Rows.Clear();
-            scanner.Analyze(editorRichTextBox.Text, dataGridView1, editorRichTextBox);
+                // Используем существующий dataGridView1, который должен быть в splitcontainer1.Panel2
+                if (dataGridView1 == null) return;
+                UpdateOutputFontSize();
+                // Анализируем текст
+                Scanner scanner = new Scanner();
+                dataGridView1.Rows.Clear();
+                scanner.Analyze(editorRichTextBox.Text, dataGridView1, editorRichTextBox);
+                SetStatus("Лексический анализ завершен");
+            }
+            catch (Exception ex)
+            {
+                SetStatus($"Ошибка анализа: {ex.Message}");
+            }
         }
 
         private void toolStripButton9_Click(object sender, EventArgs e)
@@ -790,5 +904,6 @@ namespace Lexer
             пускToolStripMenuItem_Click(sender, e);
         }
 
+        
     }
 }

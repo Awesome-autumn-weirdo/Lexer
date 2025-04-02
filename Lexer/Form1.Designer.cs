@@ -50,6 +50,8 @@
             this.справкаToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.вызовСправкиToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.оПрограммеToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.настройкиToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.размерШрифтаToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.toolStrip1 = new System.Windows.Forms.ToolStrip();
             this.toolStripButton1 = new System.Windows.Forms.ToolStripButton();
             this.toolStripButton2 = new System.Windows.Forms.ToolStripButton();
@@ -67,9 +69,6 @@
             this.tabControl2 = new System.Windows.Forms.TabControl();
             this.tabPage1 = new System.Windows.Forms.TabPage();
             this.dataGridView1 = new System.Windows.Forms.DataGridView();
-            this.настройкиToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
-            this.размерШрифтаToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
-            this.темаToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.menuStrip1.SuspendLayout();
             this.toolStrip1.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)(this.splitContainer1)).BeginInit();
@@ -253,6 +252,21 @@
             this.оПрограммеToolStripMenuItem.Size = new System.Drawing.Size(377, 26);
             this.оПрограммеToolStripMenuItem.Text = "О программе";
             this.оПрограммеToolStripMenuItem.Click += new System.EventHandler(this.оПрограммеToolStripMenuItem_Click);
+            // 
+            // настройкиToolStripMenuItem
+            // 
+            this.настройкиToolStripMenuItem.DropDownItems.AddRange(new System.Windows.Forms.ToolStripItem[] {
+            this.размерШрифтаToolStripMenuItem});
+            this.настройкиToolStripMenuItem.Name = "настройкиToolStripMenuItem";
+            this.настройкиToolStripMenuItem.Size = new System.Drawing.Size(120, 25);
+            this.настройкиToolStripMenuItem.Text = "Настройки";
+            // 
+            // размерШрифтаToolStripMenuItem
+            // 
+            this.размерШрифтаToolStripMenuItem.Name = "размерШрифтаToolStripMenuItem";
+            this.размерШрифтаToolStripMenuItem.Size = new System.Drawing.Size(233, 26);
+            this.размерШрифтаToolStripMenuItem.Text = "Размер шрифта";
+            this.размерШрифтаToolStripMenuItem.Click += new System.EventHandler(this.размерШрифтаToolStripMenuItem_Click);
             // 
             // toolStrip1
             // 
@@ -468,28 +482,6 @@
             this.dataGridView1.Size = new System.Drawing.Size(968, 171);
             this.dataGridView1.TabIndex = 0;
             // 
-            // настройкиToolStripMenuItem
-            // 
-            this.настройкиToolStripMenuItem.DropDownItems.AddRange(new System.Windows.Forms.ToolStripItem[] {
-            this.размерШрифтаToolStripMenuItem,
-            this.темаToolStripMenuItem});
-            this.настройкиToolStripMenuItem.Name = "настройкиToolStripMenuItem";
-            this.настройкиToolStripMenuItem.Size = new System.Drawing.Size(120, 25);
-            this.настройкиToolStripMenuItem.Text = "Настройки";
-            // 
-            // размерШрифтаToolStripMenuItem
-            // 
-            this.размерШрифтаToolStripMenuItem.Name = "размерШрифтаToolStripMenuItem";
-            this.размерШрифтаToolStripMenuItem.Size = new System.Drawing.Size(233, 26);
-            this.размерШрифтаToolStripMenuItem.Text = "Размер шрифта";
-            this.размерШрифтаToolStripMenuItem.Click += new System.EventHandler(this.размерШрифтаToolStripMenuItem_Click);
-            // 
-            // темаToolStripMenuItem
-            // 
-            this.темаToolStripMenuItem.Name = "темаToolStripMenuItem";
-            this.темаToolStripMenuItem.Size = new System.Drawing.Size(233, 26);
-            this.темаToolStripMenuItem.Text = "Тема";
-            // 
             // Form1
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(8F, 16F);
@@ -558,7 +550,6 @@
         private System.Windows.Forms.DataGridView dataGridView1;
         private System.Windows.Forms.ToolStripMenuItem настройкиToolStripMenuItem;
         private System.Windows.Forms.ToolStripMenuItem размерШрифтаToolStripMenuItem;
-        private System.Windows.Forms.ToolStripMenuItem темаToolStripMenuItem;
     }
 }
 
