@@ -68,7 +68,7 @@ namespace Lexer
 
             this.FormClosing += Form1_FormClosing;
 
-            CreateNewTab(null, "Новый документ", "type Point = record\r\n    x, y: real\r\nend;\r\n\r\ntype Person = record\r\n    name: string;\r\n    age: integer\r\nend;");
+            CreateNewTab(null, "Новый документ", "type Point = record\r\n    x, y: real\r\nend;\r");
         }
 
         private void StatusTimer_Tick(object sender, EventArgs e)
@@ -871,7 +871,7 @@ namespace Lexer
 
         private void пускToolStripMenuItem_Click(object sender, EventArgs e)
         {
-            SetStatus("Выполнение лексического анализа...");
+            SetStatus("Выполнение лексического и синтаксического анализа...");
             try
             {
                 if (tabControl1.SelectedTab == null) return;
@@ -884,14 +884,33 @@ namespace Lexer
                 var editorRichTextBox = splitContainer.Panel2.Controls.OfType<RichTextBox>().FirstOrDefault();
                 if (editorRichTextBox == null) return;
 
-                // Используем существующий dataGridView1, который должен быть в splitcontainer1.Panel2
-                if (dataGridView1 == null) return;
-                UpdateOutputFontSize();
-                // Анализируем текст
-                Scanner scanner = new Scanner();
+                // Очищаем таблицу перед анализом
                 dataGridView1.Rows.Clear();
-                scanner.Analyze(editorRichTextBox.Text, dataGridView1, editorRichTextBox);
-                SetStatus("Лексический анализ завершен");
+                UpdateOutputFontSize();
+
+                // Сначала лексический анализ
+                Scanner scanner = new Scanner();
+                bool lexSuccess = scanner.Analyze(editorRichTextBox.Text, dataGridView1, editorRichTextBox);
+
+                if (lexSuccess)
+                {
+                    // Затем синтаксический анализ
+                    Parser parser = new Parser();
+                    bool parseSuccess = parser.Parse(editorRichTextBox.Text, dataGridView1, editorRichTextBox);
+
+                    if (parseSuccess)
+                    {
+                        SetStatus("Анализ завершен успешно");
+                    }
+                    else
+                    {
+                        SetStatus("Обнаружены синтаксические ошибки");
+                    }
+                }
+                else
+                {
+                    SetStatus("Обнаружены лексические ошибки");
+                }
             }
             catch (Exception ex)
             {
@@ -903,7 +922,6 @@ namespace Lexer
         {
             пускToolStripMenuItem_Click(sender, e);
         }
-
-        
+  
     }
 }
