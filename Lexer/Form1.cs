@@ -869,59 +869,67 @@ namespace Lexer
             оПрограммеToolStripMenuItem_Click(sender, e);
         }
 
-        private void пускToolStripMenuItem_Click(object sender, EventArgs e)
+        private void Analyze()
         {
-            SetStatus("Выполнение лексического и синтаксического анализа...");
+            if (tabControl1.SelectedTab == null || dataGridView1 == null) return;
+
+            var splitContainer = tabControl1.SelectedTab.Controls.OfType<SplitContainer>().FirstOrDefault();
+            if (splitContainer == null) return;
+
+            var editorRichTextBox = splitContainer.Panel2.Controls.OfType<RichTextBox>().FirstOrDefault();
+            if (editorRichTextBox == null) return;
+
             try
             {
-                if (tabControl1.SelectedTab == null) return;
+                string inputText = editorRichTextBox.Text;
+                var parser = new RecordParser();
+                var errors = parser.ParseRecord(inputText);
 
-                // Получаем SplitContainer из текущей вкладки
-                var splitContainer = tabControl1.SelectedTab.Controls.OfType<SplitContainer>().FirstOrDefault();
-                if (splitContainer == null) return;
-
-                // Получаем RichTextBox из Panel2 SplitContainer
-                var editorRichTextBox = splitContainer.Panel2.Controls.OfType<RichTextBox>().FirstOrDefault();
-                if (editorRichTextBox == null) return;
-
-                // Очищаем таблицу перед анализом
-                dataGridView1.Rows.Clear();
-                UpdateOutputFontSize();
-
-                // Сначала лексический анализ
-                Scanner scanner = new Scanner();
-                bool lexSuccess = scanner.Analyze(editorRichTextBox.Text, dataGridView1, editorRichTextBox);
-
-                if (lexSuccess)
+                dataGridView1.Invoke((MethodInvoker)delegate
                 {
-                    // Затем синтаксический анализ
-                    Parser parser = new Parser();
-                    bool parseSuccess = parser.Parse(editorRichTextBox.Text, dataGridView1, editorRichTextBox);
+                    dataGridView1.Rows.Clear();
 
-                    if (parseSuccess)
+                    if (errors.Count == 0)
                     {
-                        SetStatus("Анализ завершен успешно");
+                        dataGridView1.Rows.Add("0", "Успех", "Синтаксис правильный", "1", "1");
+                        MessageBox.Show("Анализ завершен успешно. Ошибок не найдено.", "Результат анализа",
+                                        MessageBoxButtons.OK, MessageBoxIcon.Information);
                     }
                     else
                     {
-                        SetStatus("Обнаружены синтаксические ошибки");
+                        foreach (var error in errors)
+                        {
+                            // Добавляем ошибку без информации о позиции
+                            dataGridView1.Rows.Add(
+                                "Ошибка",
+                                error,
+                                "", // Доп. информация
+                                "", // Строка (будет заполнено отдельно)
+                                ""  // Позиция в строке (будет заполнено отдельно)
+                            );
+                        }
+
+                        MessageBox.Show($"Найдено {errors.Count} ошибок.", "Результат анализа",
+                                        MessageBoxButtons.OK, MessageBoxIcon.Warning);
                     }
-                }
-                else
-                {
-                    SetStatus("Обнаружены лексические ошибки");
-                }
+                });
             }
             catch (Exception ex)
             {
-                SetStatus($"Ошибка анализа: {ex.Message}");
+                MessageBox.Show($"Ошибка при анализе: {ex.Message}", "Ошибка",
+                                MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
         }
 
         private void toolStripButton9_Click(object sender, EventArgs e)
         {
-            пускToolStripMenuItem_Click(sender, e);
+            Analyze();
         }
-  
+
+        private void пускToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            Analyze();
+        }
+
     }
 }
