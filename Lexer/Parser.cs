@@ -1,347 +1,249 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Drawing;
-using System.Windows.Forms;
 
 namespace Lexer
 {
-    public class Parser
+    public class RecordParser
     {
-        private string currentId;
-        private int state;
-        private string text;
+        private string input;
         private int position;
-        private List<ParseError> errors;
-        private int currentLine;
-        private int currentLinePosition;
+        private List<string> errors = new List<string>();
 
-        public List<ParseError> GetErrors()
+        public List<string> ParseRecord(string code)
         {
+            input = code;
+            position = 0;
+            errors.Clear();
+
+            try
+            {
+                SkipWhitespace();
+                while (position < input.Length)
+                {
+                    ParseTypeDeclaration();
+                    SkipWhitespace();
+                }
+            }
+            catch (Exception ex)
+            {
+                errors.Add($"Критическая ошибка: {ex.Message}");
+            }
+
             return errors;
         }
 
-        public bool Parse(string inputText, DataGridView errorsDataGridView, RichTextBox editorRichTextBox)
-        {
-            text = inputText;
-            position = 0;
-            currentLine = 1;
-            currentLinePosition = 0;
-            state = 1;
-            currentId = "";
-            errors = new List<ParseError>();
 
-            while (position < text.Length && state != 100) // 100 - конечное состояние
-            {
-                SkipWhitespace();
-                if (position >= text.Length) break;
-
-                switch (state)
-                {
-                    case 1: State1(); break;
-                    case 2: State2(); break;
-                    case 3: State3(); break;
-                    case 4: State4(); break;
-                    case 5: State5(); break;
-                    case 6: State6(); break;
-                    case 7: State7(); break;
-                }
-            }
-
-            if (state != 100)
-            {
-                HandleError("Неожиданное завершение конструкции", "", position);
-            }
-
-            foreach (var error in errors)
-            {
-                errorsDataGridView.Rows.Add(-1, "Ошибка", error.Message, error.LineNumber, $"Позиция: {error.Position}");
-                HighlightError(editorRichTextBox, error.Position, 1);
-            }
-
-            return errors.Count == 0;
-        }
-
-        private void State1()
+        private void ParseTypeDeclaration()
         {
             if (!MatchKeyword("type"))
             {
-                HandleError("Ожидается ключевое слово 'type'", "", position);
-                SkipToKeyword(new[] { "type" });
+                AddError("Ожидалось ключевое слово 'type'");
+                SkipToKeyword(new string[] { "type" });
                 return;
             }
 
-            if (!RequireWhitespace())
-            {
-                HandleError("После 'type' должен быть пробел", "", position);
-                SkipToKeyword(new[] { "=" });
-                return;
-            }
+            SkipWhitespace();
+            ParseIdentifier();
+            SkipWhitespace();
 
-            state = 2;
-        }
-
-        private void State2()
-        {
-            if (!ParseIdentifier(out currentId))
-            {
-                HandleError("Ожидается идентификатор", "", position);
-                SkipToKeyword(new[] { "=" });
-                return;
-            }
-
-            if (!RequireWhitespace())
-            {
-                HandleError("После идентификатора должен быть пробел", "", position);
-                SkipToKeyword(new[] { "record" });
-                return;
-            }
-
-            state = 3;
-        }
-
-        private void State3()
-        {
             if (!MatchChar('='))
             {
-                HandleError("Ожидается '='", "", position);
-                SkipToKeyword(new[] { "record" });
+                AddError("Ожидалось '=' после идентификатора");
+                SkipToKeyword(new string[] { "type" });
                 return;
             }
 
-            if (!RequireWhitespace())
-            {
-                HandleError("После '=' должен быть пробел", "", position);
-                SkipToKeyword(new[] { "record" });
-                return;
-            }
+            SkipWhitespace();
 
-            state = 4;
-        }
-
-        private void State4()
-        {
             if (!MatchKeyword("record"))
             {
-                HandleError("Ожидается ключевое слово 'record'", "", position);
-                SkipToKeyword(new[] { "end" });
-                return;
-            }
-
-            if (!RequireWhitespace())
-            {
-                HandleError("После 'record' должен быть пробел", "", position);
-            }
-
-            state = 5;
-        }
-
-        private void State5()
-        {
-            bool hasFields = false;
-
-            do
-            {
-                SkipWhitespace();
-                if (!ParseIdentifier(out _))
-                {
-                    if (!hasFields)
-                    {
-                        HandleError("Ожидается имя поля", "", position);
-                        SkipToKeyword(new[] { ":", "end" });
-                    }
-                    break;
-                }
-                hasFields = true;
-
-                SkipWhitespace();
-                if (MatchChar(','))
-                {
-                    continue;
-                }
-                else if (MatchChar(':'))
-                {
-                    state = 6;
-                    return;
-                }
-                else
-                {
-                    HandleError("Ожидается ',' или ':' после имени поля", "", position);
-                    SkipToKeyword(new[] { ":", "end" });
-                    break;
-                }
-            } while (position < text.Length);
-
-            if (state == 5)
-            {
-                HandleError("Ожидается ':' после списка полей", "", position);
-                SkipToKeyword(new[] { "end" });
-            }
-        }
-
-        private void State6()
-        {
-            SkipWhitespace();
-            if (!ParseType(out _))
-            {
-                HandleError("Ожидается тип данных", "", position);
-                SkipToKeyword(new[] { "end" });
+                AddError("Ожидалось ключевое слово 'record'");
+                SkipToKeyword(new string[] { "type" });
                 return;
             }
 
             SkipWhitespace();
-            if (MatchChar(';'))
-            {
-                state = 7;
-            }
-            else
-            {
-                state = 7;
-            }
-        }
+            ParseFields();
 
-        private void State7()
-        {
+            if (!MatchKeyword("end"))
+            {
+                AddError("Ожидалось ключевое слово 'end'");
+                SkipToKeyword(new string[] { "type" });
+                return;
+            }
+
             SkipWhitespace();
-            if (MatchKeyword("end"))
+
+            if (!MatchChar(';'))
             {
-                SkipWhitespace();
-                if (MatchChar(';'))
-                {
-                    state = 100;
-                }
-                else
-                {
-                    HandleError("Ожидается ';' после 'end'", "", position);
-                }
+                AddError("Ожидалось ';' после 'end'");
             }
-            else
-            {
-                state = 5;
-            }
-        }
-
-        private bool MatchKeyword(string keyword)
-        {
-            if (position + keyword.Length > text.Length)
-                return false;
-
-            for (int i = 0; i < keyword.Length; i++)
-            {
-                if (char.ToLower(text[position + i]) != char.ToLower(keyword[i]))
-                    return false;
-            }
-
-            if (position + keyword.Length < text.Length &&
-                (char.IsLetterOrDigit(text[position + keyword.Length]) || text[position + keyword.Length] == '_'))
-                return false;
-
-            position += keyword.Length;
-            return true;
-        }
-
-        private bool MatchChar(char c)
-        {
-            if (position < text.Length && text[position] == c)
-            {
-                position++;
-                return true;
-            }
-            return false;
-        }
-
-        private bool RequireWhitespace()
-        {
-            if (position < text.Length && char.IsWhiteSpace(text[position]))
-            {
-                SkipWhitespace();
-                return true;
-            }
-            return false;
-        }
-
-        private void SkipWhitespace()
-        {
-            while (position < text.Length && char.IsWhiteSpace(text[position]))
-            {
-                if (text[position] == '\n')
-                {
-                    currentLine++;
-                    currentLinePosition = 0;
-                }
-                position++;
-            }
-        }
-
-        private bool ParseIdentifier(out string identifier)
-        {
-            identifier = "";
-            if (position >= text.Length || !char.IsLetter(text[position]))
-                return false;
-
-            int start = position;
-            while (position < text.Length && (char.IsLetterOrDigit(text[position]) || text[position] == '_'))
-            {
-                position++;
-            }
-
-            identifier = text.Substring(start, position - start);
-            return true;
-        }
-
-        private bool ParseType(out string type)
-        {
-            type = "";
-            string[] validTypes = { "real", "integer", "string", "char", "boolean" };
-            foreach (var t in validTypes)
-            {
-                if (MatchKeyword(t))
-                {
-                    type = t;
-                    return true;
-                }
-            }
-            return false;
         }
 
         private void SkipToKeyword(string[] keywords)
         {
-            while (position < text.Length)
+            int startPos = position;
+            while (position < input.Length)
             {
                 foreach (var keyword in keywords)
                 {
-                    if (MatchKeyword(keyword)) return;
+                    if (PeekKeyword(keyword)) return;
                 }
+                position++;
+
+                if (position - startPos > 1000)
+                {
+                    AddError("Не удалось найти ожидаемое ключевое слово");
+                    return;
+                }
+            }
+        }
+
+        private void ParseFields()
+        {
+            while (position < input.Length && !PeekKeyword("end"))
+            {
+                SkipWhitespace();
+                if (PeekKeyword("end")) break;
+
+                var identifiers = new List<string>();
+                do
+                {
+                    SkipWhitespace();
+                    if (position >= input.Length || !char.IsLetter(input[position]))
+                    {
+                        AddError("Ожидался идентификатор поля");
+                        SkipToKeyword(new string[] { "end", ";" });
+                        return;
+                    }
+
+                    int start = position;
+                    ParseIdentifier();
+                    identifiers.Add(input.Substring(start, position - start));
+
+                    SkipWhitespace();
+                }
+                while (MatchChar(','));
+
+                if (identifiers.Count > 0)
+                {
+                    SkipWhitespace();
+                    if (!MatchChar(':'))
+                    {
+                        AddError("Ожидалось ':' после списка полей");
+                        SkipToKeyword(new string[] { "end", ";" });
+                        continue;
+                    }
+
+                    SkipWhitespace();
+                    ParseType();
+                    SkipWhitespace();
+
+                    if (!MatchChar(';') && !PeekKeyword("end"))
+                    {
+                        AddError("Ожидалось ';' после типа поля");
+                        SkipToKeyword(new string[] { "end", ";" });
+                    }
+                }
+            }
+        }
+
+        private void ParseType()
+        {
+            string[] validTypes = { "integer", "real", "string", "boolean", "char" };
+            bool typeFound = false;
+
+            foreach (var type in validTypes)
+            {
+                if (MatchKeyword(type))
+                {
+                    typeFound = true;
+                    break;
+                }
+            }
+
+            if (!typeFound)
+            {
+                AddError($"Недопустимый тип данных. Ожидалось: {string.Join(", ", validTypes)}");
+                SkipToNextField();
+            }
+        }
+
+        private void ParseIdentifier()
+        {
+            if (position >= input.Length || !char.IsLetter(input[position]))
+            {
+                AddError("Ожидался идентификатор");
+                return;
+            }
+
+            position++;
+            while (position < input.Length && (char.IsLetterOrDigit(input[position]) || input[position] == '_'))
+            {
                 position++;
             }
         }
 
-        private void HandleError(string message, string incorrectFragment, int pos)
+        private void SkipToNextField()
         {
-            errors.Add(new ParseError(message, incorrectFragment, currentLine, pos));
+            while (position < input.Length && input[position] != ';' && !PeekKeyword("end"))
+            {
+                position++;
+            }
         }
 
-        private void HighlightError(RichTextBox richTextBox, int start, int length)
+        private void SkipWhitespace()
         {
-            richTextBox.SelectionStart = start;
-            richTextBox.SelectionLength = length;
-            richTextBox.SelectionBackColor = Color.Pink;
-            richTextBox.SelectionColor = Color.Black;
+            while (position < input.Length && char.IsWhiteSpace(input[position]))
+            {
+                position++;
+            }
         }
-    }
 
-    public class ParseError
-    {
-        public string Message { get; }
-        public string IncorrectFragment { get; }
-        public int LineNumber { get; }
-        public int Position { get; }
-
-        public ParseError(string message, string incorrectFragment, int lineNumber, int position)
+        private bool PeekKeyword(string keyword)
         {
-            Message = message;
-            IncorrectFragment = incorrectFragment;
-            LineNumber = lineNumber;
-            Position = position;
+            if (position + keyword.Length > input.Length)
+                return false;
+
+            for (int i = 0; i < keyword.Length; i++)
+            {
+                if (char.ToLower(input[position + i]) != char.ToLower(keyword[i]))
+                    return false;
+            }
+
+            if (position + keyword.Length < input.Length)
+            {
+                char nextChar = input[position + keyword.Length];
+                if (char.IsLetterOrDigit(nextChar) || nextChar == '_')
+                    return false;
+            }
+
+            return true;
+        }
+
+        private bool MatchKeyword(string keyword)
+        {
+            if (PeekKeyword(keyword))
+            {
+                position += keyword.Length;
+                return true;
+            }
+            return false;
+        }
+
+        private bool MatchChar(char c)
+        {
+            if (position < input.Length && input[position] == c)
+            {
+                position++;
+                return true;
+            }
+            return false;
+        }
+
+        private void AddError(string message)
+        {
+            errors.Add(message);
         }
     }
 }
