@@ -32,13 +32,12 @@ namespace Lexer
             return errors;
         }
 
-
         private void ParseTypeDeclaration()
         {
             if (!MatchKeyword("type"))
             {
                 AddError("Ожидалось ключевое слово 'type'");
-                SkipToKeyword(new string[] { "type" });
+                SkipToRecoveryPoint();
                 return;
             }
 
@@ -49,7 +48,7 @@ namespace Lexer
             if (!MatchChar('='))
             {
                 AddError("Ожидалось '=' после идентификатора");
-                SkipToKeyword(new string[] { "type" });
+                SkipToRecoveryPoint();
                 return;
             }
 
@@ -58,7 +57,7 @@ namespace Lexer
             if (!MatchKeyword("record"))
             {
                 AddError("Ожидалось ключевое слово 'record'");
-                SkipToKeyword(new string[] { "type" });
+                SkipToRecoveryPoint();
                 return;
             }
 
@@ -68,7 +67,7 @@ namespace Lexer
             if (!MatchKeyword("end"))
             {
                 AddError("Ожидалось ключевое слово 'end'");
-                SkipToKeyword(new string[] { "type" });
+                SkipToRecoveryPoint();
                 return;
             }
 
@@ -77,25 +76,35 @@ namespace Lexer
             if (!MatchChar(';'))
             {
                 AddError("Ожидалось ';' после 'end'");
+                SkipToRecoveryPoint();
             }
         }
 
-        private void SkipToKeyword(string[] keywords)
+        private void SkipToRecoveryPoint()
         {
-            int startPos = position;
+            // Точки восстановления - ключевые слова, которые могут начать новую конструкцию
+            string[] recoveryKeywords = { "type", "end", ";" };
+
             while (position < input.Length)
             {
-                foreach (var keyword in keywords)
+                foreach (var keyword in recoveryKeywords)
                 {
                     if (PeekKeyword(keyword)) return;
                 }
-                position++;
 
-                if (position - startPos > 1000)
+                // Также останавливаемся при начале нового идентификатора
+                if (position < input.Length && char.IsLetter(input[position]))
                 {
-                    AddError("Не удалось найти ожидаемое ключевое слово");
-                    return;
+                    // Проверяем, не является ли это ключевым словом
+                    if (!PeekKeyword("record") && !PeekKeyword("integer") &&
+                        !PeekKeyword("real") && !PeekKeyword("string") &&
+                        !PeekKeyword("boolean") && !PeekKeyword("char"))
+                    {
+                        return;
+                    }
                 }
+
+                position++;
             }
         }
 
@@ -107,14 +116,16 @@ namespace Lexer
                 if (PeekKeyword("end")) break;
 
                 var identifiers = new List<string>();
+                bool hasError = false;
+
                 do
                 {
                     SkipWhitespace();
                     if (position >= input.Length || !char.IsLetter(input[position]))
                     {
                         AddError("Ожидался идентификатор поля");
-                        SkipToKeyword(new string[] { "end", ";" });
-                        return;
+                        hasError = true;
+                        break;
                     }
 
                     int start = position;
@@ -125,13 +136,19 @@ namespace Lexer
                 }
                 while (MatchChar(','));
 
+                if (hasError)
+                {
+                    SkipToFieldRecoveryPoint();
+                    continue;
+                }
+
                 if (identifiers.Count > 0)
                 {
                     SkipWhitespace();
                     if (!MatchChar(':'))
                     {
                         AddError("Ожидалось ':' после списка полей");
-                        SkipToKeyword(new string[] { "end", ";" });
+                        SkipToFieldRecoveryPoint();
                         continue;
                     }
 
@@ -141,10 +158,35 @@ namespace Lexer
 
                     if (!MatchChar(';') && !PeekKeyword("end"))
                     {
-                        AddError("Ожидалось ';' после типа поля");
-                        SkipToKeyword(new string[] { "end", ";" });
+                        AddError("Ожидалось ';' после типа поля или ключевое слово 'end'");
+                        SkipToFieldRecoveryPoint();
                     }
                 }
+            }
+        }
+
+        private void SkipToFieldRecoveryPoint()
+        {
+            // Точки восстановления внутри record
+            string[] recoveryKeywords = { "end", ";" };
+
+            while (position < input.Length)
+            {
+                foreach (var keyword in recoveryKeywords)
+                {
+                    if (PeekKeyword(keyword)) return;
+                }
+
+                // Также останавливаемся при начале нового идентификатора поля
+                if (position < input.Length && char.IsLetter(input[position]) &&
+                    !PeekKeyword("record") && !PeekKeyword("integer") &&
+                    !PeekKeyword("real") && !PeekKeyword("string") &&
+                    !PeekKeyword("boolean") && !PeekKeyword("char"))
+                {
+                    return;
+                }
+
+                position++;
             }
         }
 
@@ -165,7 +207,7 @@ namespace Lexer
             if (!typeFound)
             {
                 AddError($"Недопустимый тип данных. Ожидалось: {string.Join(", ", validTypes)}");
-                SkipToNextField();
+                SkipToFieldRecoveryPoint();
             }
         }
 
@@ -179,14 +221,6 @@ namespace Lexer
 
             position++;
             while (position < input.Length && (char.IsLetterOrDigit(input[position]) || input[position] == '_'))
-            {
-                position++;
-            }
-        }
-
-        private void SkipToNextField()
-        {
-            while (position < input.Length && input[position] != ';' && !PeekKeyword("end"))
             {
                 position++;
             }
@@ -243,7 +277,7 @@ namespace Lexer
 
         private void AddError(string message)
         {
-            errors.Add(message);
+            errors.Add($"{message} (позиция: {position})");
         }
     }
 }
