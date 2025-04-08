@@ -855,80 +855,41 @@ namespace Lexer
             {
                 string inputText = editorRichTextBox.Text;
                 var parser = new RecordParser();
-                var parseResult = parser.ParseRecord(inputText);
+                var errors = parser.ParseRecord(inputText);
 
                 dataGridView1.Invoke((MethodInvoker)delegate
                 {
                     dataGridView1.Rows.Clear();
-                    InitializeDataGridViewColumns(dataGridView1); // Переинициализируем колонки
 
-                    if (parseResult.Errors.Count == 0)
+                    if (errors.Count == 0)
                     {
-                        // Добавляем информацию об успешном анализе
-                        dataGridView1.Rows.Add(
-                            "0",                      // Код лексемы
-                            "Успешный анализ",       // Тип лексемы
-                            "Синтаксис правильный",  // Лексема
-                            "1",                     // Номер строки
-                            "1"                      // Позиция
-                        );
-
-                        MessageBox.Show("Анализ завершен успешно. Ошибок не найдено.",
-                                       "Результат анализа",
-                                       MessageBoxButtons.OK,
-                                       MessageBoxIcon.Information);
+                        dataGridView1.Rows.Add("0", "Успех", "Синтаксис правильный", "1", "1");
+                        MessageBox.Show("Анализ завершен успешно. Ошибок не найдено.", "Результат анализа",
+                                        MessageBoxButtons.OK, MessageBoxIcon.Information);
                     }
                     else
                     {
-                        // Добавляем все найденные ошибки
-                        foreach (var error in parseResult.Errors)
+                        foreach (var error in errors)
                         {
+                            // Добавляем ошибку без информации о позиции
                             dataGridView1.Rows.Add(
-                                "-1",                     // Код ошибки
-                                "Ошибка синтаксиса",      // Тип ошибки
-                                error.Message,            // Сообщение об ошибке
-                                error.LineNumber.ToString(), // Строка
-                                error.Position.ToString() // Позиция
+                                "Ошибка",
+                                error,
+                                "", // Доп. информация
+                                "", // Строка (будет заполнено отдельно)
+                                ""  // Позиция в строке (будет заполнено отдельно)
                             );
-
-                            // Подсвечиваем ошибку в редакторе
-                            HighlightErrorInEditor(editorRichTextBox, error.LineNumber, error.Position);
                         }
 
-                        MessageBox.Show($"Найдено {parseResult.Errors.Count} ошибок.",
-                                       "Результат анализа",
-                                       MessageBoxButtons.OK,
-                                       MessageBoxIcon.Warning);
+                        MessageBox.Show($"Найдено {errors.Count} ошибок.", "Результат анализа",
+                                        MessageBoxButtons.OK, MessageBoxIcon.Warning);
                     }
                 });
             }
             catch (Exception ex)
             {
-                MessageBox.Show($"Ошибка при анализе: {ex.Message}",
-                               "Ошибка",
-                               MessageBoxButtons.OK,
-                               MessageBoxIcon.Error);
-            }
-        }
-
-        private void HighlightErrorInEditor(RichTextBox editor, int lineNumber, int position)
-        {
-            try
-            {
-                // Получаем индекс начала строки
-                int lineIndex = lineNumber > 0 ? editor.GetFirstCharIndexFromLine(lineNumber - 1) : 0;
-
-                // Устанавливаем выделение
-                editor.SelectionStart = lineIndex + position - 1;
-                editor.SelectionLength = 1;
-                editor.SelectionBackColor = Color.Pink;
-
-                // Прокручиваем к ошибке
-                editor.ScrollToCaret();
-            }
-            catch
-            {
-                // Игнорируем ошибки выделения (если позиция некорректна)
+                MessageBox.Show($"Ошибка при анализе: {ex.Message}", "Ошибка",
+                                MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
         }
 
