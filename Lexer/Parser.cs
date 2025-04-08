@@ -30,7 +30,6 @@ namespace Lexer
 
         private void ParseTypeDeclaration()
         {
-            
             if (!PeekKeyword("type"))
             {
                 AddError("Ожидалось ключевое слово 'type'");
@@ -47,7 +46,7 @@ namespace Lexer
             if (!MatchChar('='))
             {
                 AddError("Ожидалось '=' после идентификатора");
-                SkipToNextSignificantToken();
+                SkipToNextToken();
             }
 
             SkipWhitespace();
@@ -81,8 +80,7 @@ namespace Lexer
             }
         }
 
-
-        private void SkipToNextSignificantToken()
+        private void SkipToNextToken()
         {
             while (position < input.Length)
             {
@@ -115,10 +113,9 @@ namespace Lexer
                     if (position >= input.Length || !char.IsLetter(input[position]))
                     {
                         AddError("Ожидался идентификатор поля");
-                        SkipToNextSignificantToken();
+                        SkipToNextToken();
                         continue;
                     }
-
 
                     int start = position;
                     ParseIdentifier();
@@ -134,28 +131,29 @@ namespace Lexer
                     if (!MatchChar(':'))
                     {
                         AddError("Ожидалось ':' после списка полей");
-                        SkipToNextSignificantToken();
+                        SkipToNextToken();
                         continue;
                     }
 
                     SkipWhitespace();
-                    ParseType();
+                    ParseFieldType(); // Проверка типа поля сразу после ":"
                     SkipWhitespace();
 
                     if (!MatchChar(';') && !PeekKeyword("end"))
                     {
                         AddError("Ожидалось ';' после типа поля или ключевое слово 'end'");
-                        SkipToNextSignificantToken();
+                        SkipToNextToken();
                     }
                 }
             }
         }
 
-        private void ParseType()
+        private void ParseFieldType()
         {
             string[] validTypes = { "integer", "real", "string", "boolean", "char" };
             bool typeFound = false;
 
+            // Проверяем тип после символа ":"
             foreach (var type in validTypes)
             {
                 if (MatchKeyword(type))
@@ -167,7 +165,7 @@ namespace Lexer
 
             if (!typeFound)
             {
-                AddError($"Недопустимый тип данных. Ожидалось: {string.Join(", ", validTypes)}");
+                AddError($"Недопустимый тип данных после ':'. Ожидалось: {string.Join(", ", validTypes)}");
                 SkipToNextField();
             }
         }

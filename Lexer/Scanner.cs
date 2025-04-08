@@ -12,13 +12,13 @@ namespace Lexer
 
         public bool Analyze(string text, DataGridView errorsDataGridView, RichTextBox editorRichTextBox)
         {
-            // Очищаем таблицу перед новым анализом
             errorsDataGridView.Rows.Clear();
 
             int lineNumber = 1;
             int positionInLine = 0;
             int globalPosition = 0;
             bool lastWasKeyword = false;
+            bool isSuccess = true;
 
             while (globalPosition < text.Length)
             {
@@ -61,12 +61,11 @@ namespace Lexer
                             continue;
                         }
 
-                        if (currentChar >= 'A' && currentChar <= 'Z' || currentChar >= 'a' && currentChar <= 'z')
+                        if (IsLatinLetter(currentChar))
                         {
                             int end = globalPosition;
                             while (end < text.Length &&
-                                   ((text[end] >= 'A' && text[end] <= 'Z') || (text[end] >= 'a' && text[end] <= 'z') ||
-                                    char.IsDigit(text[end]) || text[end] == '_'))
+                                   (IsLatinLetter(text[end]) || char.IsDigit(text[end]) || text[end] == '_'))
                             {
                                 end++;
                             }
@@ -111,14 +110,32 @@ namespace Lexer
                             continue;
                         }
 
-                        // Если символ не попал ни в одну из категорий, значит, это ошибка
-                        AddTokenToDataGridView(errorsDataGridView, currentChar.ToString(), "Недопустимый символ", lineNumber, positionInLine, positionInLine + 1);
-                        HighlightError(editorRichTextBox, globalPosition, 1);
-                        return false;
+                        // Обработка цепочки недопустимых символов (в т.ч. русских)
+                        int errorStartGlobal = globalPosition;
+                        int errorStartLine = positionInLine;
+
+                        while (globalPosition < text.Length &&
+                               !IsLatinLetter(text[globalPosition]) &&
+                               !char.IsDigit(text[globalPosition]) &&
+                               !IsOperator(text[globalPosition]) &&
+                               !char.IsWhiteSpace(text[globalPosition]))
+                        {
+                            globalPosition++;
+                            positionInLine++;
+                        }
+
+                        AddTokenToDataGridView(errorsDataGridView, text[errorStartGlobal].ToString(), "Недопустимый символ", lineNumber, errorStartLine, errorStartLine + 1);
+                        HighlightError(editorRichTextBox, errorStartGlobal, 1);
+                        isSuccess = false;
+                        continue;
                 }
             }
 
-            return true;
+            return isSuccess;
+        }
+        private bool IsLatinLetter(char ch)
+        {
+            return (ch >= 'A' && ch <= 'Z') || (ch >= 'a' && ch <= 'z');
         }
 
         private bool IsOperator(char ch) => Array.Exists(operators, op => op[0] == ch);
@@ -148,9 +165,14 @@ namespace Lexer
 
         private void HighlightError(RichTextBox richTextBox, int start, int length)
         {
-            richTextBox.SelectionStart = start;
-            richTextBox.SelectionLength = length;
+            int originalSelectionStart = richTextBox.SelectionStart;
+            int originalSelectionLength = richTextBox.SelectionLength;
+
+            richTextBox.Select(start, length);
             richTextBox.SelectionBackColor = Color.Plum;
+
+            // Возвращаем выделение обратно, чтобы не сбивать курсор
+            richTextBox.Select(originalSelectionStart, originalSelectionLength);
         }
     }
 }
