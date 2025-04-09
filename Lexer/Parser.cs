@@ -30,7 +30,7 @@ namespace Lexer
             var errors = new List<string>();
             int i = 0;
 
-            // Улучшенная функция Expect - записывает ошибку, но продолжает разбор
+            // Восстанавливающее ожидание ключевого слова/символа
             void Expect(string expected, string context)
             {
                 if (i >= tokens.Count)
@@ -42,46 +42,47 @@ namespace Lexer
                 if (tokens[i].Value != expected)
                 {
                     errors.Add($"Ожидалось '{expected}' {context}, найдено '{tokens[i].Value}'");
-                    return;
                 }
 
-                i++;
+                i++; // Всегда двигаем, даже если неправильное
             }
 
-            // Функция для проверки идентификатора
+            // Восстанавливающее ожидание идентификатора
             bool CheckIdentifier(string context)
             {
-                if (i >= tokens.Count || tokens[i].Type != TokenType.Identifier)
+                if (i >= tokens.Count)
                 {
-                    errors.Add($"Ожидался идентификатор {context}, найдено '{(i < tokens.Count ? tokens[i].Value : "EOF")}'");
+                    errors.Add($"Ожидался идентификатор {context}, найдено 'EOF'");
                     return false;
                 }
+
+                if (tokens[i].Type != TokenType.Identifier)
+                {
+                    errors.Add($"Ожидался идентификатор {context}, найдено '{tokens[i].Value}'");
+                    i++; // Пропускаем неправильный токен
+                    return false;
+                }
+
+                i++; // Пропускаем корректный токен
                 return true;
             }
 
-            // Основной алгоритм разбора
+            // Парсинг структуры записи
             try
             {
-                // 1. Проверяем начало объявления
                 Expect("type", "в начале объявления");
-
-                // 2. Проверяем имя типа
-                if (CheckIdentifier("после 'type'")) i++;
-
-                // 3. Проверяем знак равенства
+                CheckIdentifier("после 'type'");
                 Expect("=", "после имени типа");
-
-                // 4. Проверяем ключевое слово record
                 Expect("record", "после '='");
 
-                // 5. Проверяем список полей
+                // Разбор списка полей
                 bool hasFields = false;
                 while (i < tokens.Count && (tokens[i].Type == TokenType.Identifier || tokens[i].Value == ","))
                 {
                     if (tokens[i].Value == ",")
                     {
                         i++;
-                        if (!CheckIdentifier("после ','")) break;
+                        CheckIdentifier("после ','");
                     }
                     else if (tokens[i].Type == TokenType.Identifier)
                     {
@@ -95,17 +96,27 @@ namespace Lexer
                     errors.Add("Ожидался хотя бы один идентификатор поля");
                 }
 
-                // 6. Проверяем двоеточие
                 Expect(":", "после списка полей");
-
-                // 7. Проверяем тип полей
                 Expect("real", "в качестве типа поля");
-
-                // 8. Проверяем закрывающее ключевое слово
                 Expect("end", "в конце объявления");
 
-                // 9. Проверяем точку с запятой (необязательную)
-                if (i < tokens.Count && tokens[i].Value == ";") i++;
+                // Проверяем точку с запятой
+                if (i < tokens.Count)
+                {
+                    if (tokens[i].Value == ";")
+                    {
+                        i++;
+                    }
+                    else
+                    {
+                        errors.Add($"Ожидалась ';' после 'end', найдено '{tokens[i].Value}'");
+                        i++;
+                    }
+                }
+                else
+                {
+                    errors.Add("Ожидалась ';' после 'end', найдено 'EOF'");
+                }
             }
             catch (Exception ex)
             {
