@@ -68,7 +68,7 @@ namespace Lexer
 
             this.FormClosing += Form1_FormClosing;
 
-            CreateNewTab(null, "Новый документ", "type Man = record\r\n    weight: real\r\nend;\r");
+            CreateNewTab(null, "Новый документ", "type Complex = record\r\n    re, im: real;\r\n    reim: integer\r\nend;\r");
         }
 
         private void StatusTimer_Tick(object sender, EventArgs e)
@@ -855,7 +855,7 @@ namespace Lexer
             {
                 string inputText = editorRichTextBox.Text;
                 var parser = new RecordParser();
-                var errors = parser.ParseRecord(inputText);
+                var errors = parser.ParseRecord(inputText, editorRichTextBox);
 
                 dataGridView1.Invoke((MethodInvoker)delegate
                 {
